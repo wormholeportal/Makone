@@ -1,0 +1,10 @@
+{
+  // Cloudflare Workers static-assets config: serves the Vite build in dist/
+  // as a static site (no server-side Worker code). Deployed via `wrangler deploy`.
+  "name": "makone",
+  "compatibility_date": "2024-11-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
