@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "makone/game": ["src/runtime/game/index.ts"]
+    },
+
+    "allowJs": true,
+    "checkJs": false
+  },
+  // The app code is type-checked. Game runtime helpers are bundled by Vite and
+  // are excluded here because games are JavaScript modules with their own loop.
+  "include": ["src", "vite.config.ts"],
+  "exclude": ["src/runtime", "node_modules", "dist"]
+}

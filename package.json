@@ -1,0 +1,52 @@
+{
+  "name": "makone-arcade",
+  "version": "0.1.0",
+  "description": "A static, CDN-friendly arcade for self-contained procedural Three.js games.",
+  "license": "MIT",
+  "type": "module",
+  "author": "wormholeportal",
+  "homepage": "https://makone.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wormholeportal/Makone.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wormholeportal/Makone/issues"
+  },
+  "keywords": [
+    "arcade",
+    "threejs",
+    "vite",
+    "react",
+    "procedural-games",
+    "static-site"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run build",
+    "gen-covers": "vite build && node scripts/gen-covers.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.0",
+    "three": "^0.183.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.183.1",
+    "@vitejs/plugin-react": "^6.0.1",
+    "playwright": "^1.60.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.3"
+  }
+}

@@ -1,0 +1,53 @@
+/*
+ * Design tokens — the playful island arcade language (from the world.html UI/UX
+ * reference). Single source of truth for color, type, space, radius, shadow.
+ */
+:root {
+  /* ===== Sky / surfaces ===== */
+  --c-sky: #b8e6de;
+  --c-sky-soft: #ffd8ad;
+  --c-paper: #fffaf0; /* sheet / panels */
+  --c-paper-2: #fff0dc;
+  --c-glass: rgba(255, 250, 240, 0.78); /* frosted HUD chips */
+
+  /* ===== Ink / text ===== (values mirror world.html exactly) */
+  --c-ink: #3d3a42;          /* body text on light surfaces */
+  --c-ink-strong: #27232d;   /* h2 / strongest text */
+  --c-ink-soft: #746d73;     /* secondary body */
+  --c-ink-faint: #9c9396;
+
+  /* ===== Accents ===== (values mirror world.html exactly) */
+  --c-coral: #f28b78;        /* PRIMARY brand coral - logo, accents, Mo */
+  --c-coral-deep: #cf6a58;   /* Mo shadow side / pressed states */
+  --c-amber: #f7c86b;
+  --c-violet: #b9a3f3;
+  --c-green: #7bcf9e;
+  --c-blue: #75c4d6;         /* logo dot, antenna gem, key chips */
+  --c-pink: #f4a7c7;
+  --c-leaf: #4c6a58;         /* soft button green */
+
+  /* ===== Type ===== */
+  --font-display: "Fredoka", system-ui, -apple-system, "PingFang SC", sans-serif;
+  --font-ui: "Fredoka", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+
+  /* ===== Space ===== */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 22px;
+  --sp-6: 30px;
+
+  /* ===== Radius ===== */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-pill: 30px;
+
+  /* ===== Shadow (soft, green-tinted) ===== */
+  --shadow-chip: 0 10px 28px -16px rgba(23, 36, 51, 0.45);
+  --shadow-float: 0 22px 48px -20px rgba(23, 36, 51, 0.46);
+  --shadow-sheet: 0 50px 90px -30px rgba(23, 36, 51, 0.52);
+}
