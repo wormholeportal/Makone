@@ -22,7 +22,7 @@ npm run check
 2. Add metadata to `src/games/catalog.ts`.
 3. Keep the `id` equal to the filename without `.js`.
 4. Test the game route at `/#/play/your-game-id`.
-5. Open a PR using the template.
+5. Open a pull request.
 
 Example catalog entry:
 
