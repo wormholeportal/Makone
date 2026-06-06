@@ -24,10 +24,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run build",
-    "gen-covers": "vite build && node scripts/gen-covers.mjs"
+    "gen-covers": "vite build && node scripts/gen-covers.mjs",
+    "deploy": "npm run build && wrangler deploy"
   },
   "engines": {
     "node": ">=20"
@@ -40,6 +41,7 @@
     "three": "^0.183.2"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.40.0",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
@@ -47,6 +49,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "playwright": "^1.60.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "wrangler": "^4.98.0"
   }
 }

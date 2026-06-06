@@ -2,12 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // Each game in /games/*.js is loaded as a real ES module via import.meta.glob,
 // so Vite/Rollup code-splits one chunk per game automatically — visitors only
 // download the game they open. The two heavy shared deps (three, rapier) are
 // pulled into their own long-lived cacheable chunks below.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), cloudflare()],
   resolve: {
     alias: {
       // Small public toolkit used by bundled and contributed games.
