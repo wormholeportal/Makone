@@ -1,0 +1,13 @@
+{
+  "name": "typewriter",
+  "title": "Portable Typewriter",
+  "type": "object",
+  "format": "module",
+  "entry": "main.js",
+  "brief": "cold nickel and black lacquer, a sheet already curled over the platen",
+  "budget": {
+    "tris": 60000,
+    "drawCalls": 400
+  },
+  "cover": "cover.png"
+}

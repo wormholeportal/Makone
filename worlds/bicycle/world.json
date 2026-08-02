@@ -1,0 +1,13 @@
+{
+  "name": "bicycle",
+  "title": "Road Bike",
+  "type": "object",
+  "format": "module",
+  "entry": "main.js",
+  "brief": "a steel road bike caught mid-lean: thin tubes, gum-wall tyres, 32 spokes drawing hairlines",
+  "budget": {
+    "tris": 400000,
+    "drawCalls": 200
+  },
+  "cover": "cover.png"
+}

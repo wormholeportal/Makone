@@ -1,0 +1,13 @@
+{
+  "name": "gramophone",
+  "title": "Gramophone",
+  "type": "object",
+  "format": "module",
+  "entry": "main.js",
+  "brief": "brass catching a single window's light in a quiet room",
+  "budget": {
+    "tris": 120000,
+    "drawCalls": 120
+  },
+  "cover": "cover.png"
+}

@@ -1,21 +1,143 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#b8e6de" />
-    <meta name="description" content="Makone Arcade — a code-first browser arcade for self-contained procedural games. Make games with code, share them instantly." />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <title>Makone Arcade — Make games with code</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Makone — Make Worlds with Code</title>
+<style>
+  /* Paper + gold. No webfonts: the gallery has to open with nothing installed. */
+  :root {
+    --paper: oklch(0.958 0.012 100);
+    --ink:   oklch(0.44 0.012 90);
+    --ink2:  oklch(0.30 0.012 90);
+    --soft:  oklch(0.55 0.012 90);
+    --dim:   oklch(0.68 0.014 92);
+    --gold:  #d4a800;
+    --shade: oklch(0.45 0.03 90 / .55);
+    --mono:  "SFMono-Regular", ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { background: var(--paper); color: var(--ink);
+         font: 15px/1.6 system-ui, -apple-system, "PingFang SC", sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 72px 32px 96px }
+  h1 { font: 700 13px/1 var(--mono); letter-spacing: 3.4px; text-transform: uppercase;
+       color: var(--ink2); display: flex; align-items: center; gap: 11px }
+  .mark { width: 26px; height: 26px; flex: none }
+  .mark g { animation: spin 20s linear infinite; transform-origin: 24px 24px }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  @media (prefers-reduced-motion: reduce) { .mark g { animation: none } }
+  .lede { margin-top: 20px; font-size: 17px; line-height: 1.7; color: var(--soft); max-width: 460px }
+
+  nav { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 22px }
+  nav button { background: none; border: 0; cursor: pointer; padding: 4px 0;
+               font: 11px var(--mono); letter-spacing: 2px; text-transform: uppercase;
+               color: var(--dim); box-shadow: 0 2px 0 transparent; transition: color .18s }
+  nav button:hover { color: var(--ink2) }
+  nav button.on { color: var(--ink2); box-shadow: 0 2px 0 var(--gold) }
+  nav .count { color: var(--dim); font-weight: 400 }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 34px 26px; margin-top: 34px }
+  a.card { display: block; color: inherit; text-decoration: none }
+  .ph { position: relative; aspect-ratio: 16/10; border-radius: 12px; overflow: hidden;
+        background: linear-gradient(135deg, oklch(0.93 0.014 100), oklch(0.90 0.016 96));
+        box-shadow: 0 22px 44px -38px var(--shade);
+        transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s }
+  .card:hover .ph { transform: translateY(-4px); box-shadow: 0 30px 54px -34px var(--shade) }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block }
+  .nm { display: flex; align-items: baseline; gap: 10px; margin-top: 13px }
+  .nm b { font-size: 16px; font-weight: 500; color: var(--ink2) }
+  .nm .t { margin-left: auto; font: 10px var(--mono); letter-spacing: 1.5px;
+           text-transform: uppercase; color: var(--dim) }
+  .ds { margin-top: 5px; font-size: 13.5px; line-height: 1.55; color: var(--soft) }
+
+  footer { margin-top: 88px; font: 10.5px var(--mono); letter-spacing: 2.2px;
+           text-transform: uppercase; color: var(--dim) }
+  footer a { color: var(--dim) }
+  footer a:hover { color: var(--ink2) }
+
+  @media (max-width: 720px) {
+    main { padding: 48px 20px 64px }
+    .lede { font-size: 15px }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>
+    <!-- the brand mark: six petals in a ring, same geometry as assets/logo.svg -->
+    <svg class="mark" viewBox="0 0 48 48" aria-hidden="true">
+      <g fill="#D4A800" fill-opacity=".85" stroke="#9A7B00" stroke-width="1.5">
+        <ellipse cx="39" cy="24" rx="4.5" ry="8" transform="rotate(0 39 24)"/>
+        <ellipse cx="31.5" cy="36.99" rx="4.5" ry="8" transform="rotate(60 31.5 36.99)"/>
+        <ellipse cx="16.5" cy="36.99" rx="4.5" ry="8" transform="rotate(120 16.5 36.99)"/>
+        <ellipse cx="9" cy="24" rx="4.5" ry="8" transform="rotate(180 9 24)"/>
+        <ellipse cx="16.5" cy="11.01" rx="4.5" ry="8" transform="rotate(240 16.5 11.01)"/>
+        <ellipse cx="31.5" cy="11.01" rx="4.5" ry="8" transform="rotate(300 31.5 11.01)"/>
+        <circle cx="24" cy="24" r="6.5"/>
+      </g>
+    </svg>Makone
+  </h1>
+  <p class="lede">Make Worlds with Code. Every world in here is procedural source —
+    no imported meshes, no texture packs.</p>
+  <nav id="tabs"></nav>
+  <div class="grid" id="grid"></div>
+  <footer>Open one and drag to orbit · <a href="https://github.com/wormholeportal/Makone">source</a></footer>
+</main>
+<script type="module">
+const { worlds } = await (await fetch('/worlds/index.json')).json();
+const types = [...new Set(worlds.map((w) => w.type))].sort();   // grows on its own as new types appear
+let tab = 'all';
+
+const tabsEl = document.getElementById('tabs');
+for (const t of ['all', ...types]) {
+  const n = t === 'all' ? worlds.length : worlds.filter((w) => w.type === t).length;
+  const b = document.createElement('button');
+  b.innerHTML = `${t === 'all' ? 'all' : t + 's'} <span class="count">${n}</span>`;
+  b.dataset.type = t;
+  b.onclick = () => { tab = t; render(); };
+  tabsEl.appendChild(b);
+}
+
+function render() {
+  [...tabsEl.children].forEach((b) => b.classList.toggle('on', b.dataset.type === tab));
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (const w of worlds.filter((w) => tab === 'all' || w.type === tab)) {
+    const el = document.createElement('a');
+    el.className = 'card';
+    el.href = `play.html?world=${w.path}`;
+    el.innerHTML =
+      // the still is the card; the loop is requested only on hover, so opening the gallery
+      // does not pull 50 animations at once
+      '<div class="ph">' + (w.cover
+        ? `<img src="/worlds/${w.path}/${w.cover}" alt="" loading="lazy"`
+          + ` data-still="/worlds/${w.path}/${w.cover}" data-loop="/worlds/${w.path}/cover.gif">`
+        : '') + '</div>' +
+      `<div class="nm"><b>${w.title || w.name}</b><span class="t">${w.type}</span></div>` +
+      (w.brief ? `<div class="ds">${w.brief}</div>` : '');
+    grid.appendChild(el);
+  }
+}
+render();
+
+// hover to animate — respects a reduced-motion preference and never fires on touch
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches && matchMedia('(hover: hover)').matches) {
+  const grid = document.getElementById('grid');
+  grid.addEventListener('pointerover', (e) => {
+    const img = e.target.closest('.ph img');
+    if (!img?.dataset.loop) return;
+    // not every world has a loop yet — fall back to the still rather than blanking the card
+    img.onerror = () => { img.dataset.loop = ''; img.onerror = null; img.src = img.dataset.still; };
+    img.src = img.dataset.loop;
+  });
+  grid.addEventListener('pointerout', (e) => {
+    const img = e.target.closest('.ph img');
+    if (img?.dataset.still) img.src = img.dataset.still;
+  });
+}
+</script>
+</body>
 </html>

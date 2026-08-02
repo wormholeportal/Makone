@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 252" width="880" height="252" role="img" aria-label="A declared brief governs the loop: write, then capture and verify, then look and judge against the brief; if it is closer, ship it — export, catalog, commit; if not, fix the weakest frame and repeat.">
+  <style>
+    .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12.5px; font-weight: 600; fill: #16191d; letter-spacing: -.01em; }
+    .ser  { font-family: "Times New Roman", Times, "Nimbus Roman", Georgia, serif;
+            font-size: 11.5px; fill: #4a5058; }
+    .it   { font-family: "Times New Roman", Times, "Nimbus Roman", Georgia, serif;
+            font-size: 11px; font-style: italic; fill: #4a5058; }
+    .box  { fill: none; stroke: #16191d; stroke-width: 1; }
+    .key  { fill: #f2f2ef; stroke: #16191d; stroke-width: 1; }
+    .ln   { stroke: #16191d; stroke-width: 1; fill: none; }
+    .fb   { stroke: #8a6d00; stroke-width: 1.2; fill: none; stroke-dasharray: 5 3; }
+    .mk   { fill: #8a6d00; }
+    .mn   { fill: #16191d; }
+    .gold { fill: #8a6d00; }
+    @media (prefers-color-scheme: dark) {
+      .mono { fill: #e6edf3; }
+      .ser, .it { fill: #9aa4af; }
+      .box, .ln { stroke: #c9d1d9; }
+      .key { fill: #1c2128; stroke: #c9d1d9; }
+      .mn  { fill: #c9d1d9; }
+      .fb  { stroke: #e3b341; }
+      .mk, .gold { fill: #e3b341; }
+    }
+  </style>
+  <defs>
+    <marker id="l1" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,1 L7.4,4 L0,7 z" class="mn"/>
+    </marker>
+    <marker id="l2" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,1 L7.4,4 L0,7 z" class="mk"/>
+    </marker>
+  </defs>
+
+  <!-- the declared objective: everything downstream is scored against it -->
+  <rect class="key" x="34" y="12" width="290" height="46" rx="2"/>
+  <text class="mono" x="179" y="32" text-anchor="middle">brief</text>
+  <text class="ser"  x="179" y="48" text-anchor="middle">one sentence, concrete enough to smell</text>
+
+  <path class="fb" d="M324,35 L566,35 L566,104" marker-end="url(#l2)"/>
+  <text class="it gold" x="566" y="25" text-anchor="middle">judged against</text>
+
+  <path class="ln" d="M109,58 L109,106" marker-end="url(#l1)"/>
+
+  <rect class="box" x="34" y="110" width="150" height="52" rx="2"/>
+  <text class="mono" x="109" y="132" text-anchor="middle">write</text>
+  <text class="ser"  x="109" y="149" text-anchor="middle">geometry · light · motion</text>
+
+  <rect class="box" x="250" y="84" width="170" height="44" rx="2"/>
+  <text class="mono" x="335" y="103" text-anchor="middle">capture</text>
+  <text class="ser"  x="335" y="119" text-anchor="middle">headless frames</text>
+
+  <rect class="box" x="250" y="144" width="170" height="44" rx="2"/>
+  <text class="mono" x="335" y="163" text-anchor="middle">verify</text>
+  <text class="ser"  x="335" y="179" text-anchor="middle">contract · budget · motion</text>
+
+  <path class="ln" d="M184,126 L216,126 L216,106 L244,106" marker-end="url(#l1)"/>
+  <path class="ln" d="M184,146 L216,146 L216,166 L244,166" marker-end="url(#l1)"/>
+  <path class="ln" d="M420,106 L452,106 L452,126 L480,126" marker-end="url(#l1)"/>
+  <path class="ln" d="M420,166 L452,166 L452,146 L480,146" marker-end="url(#l1)"/>
+
+  <rect class="key" x="486" y="110" width="160" height="52" rx="2"/>
+  <text class="mono" x="566" y="132" text-anchor="middle">look</text>
+  <text class="ser"  x="566" y="149" text-anchor="middle">closer to the brief?</text>
+
+  <path class="ln" d="M646,136 L706,136" marker-end="url(#l1)"/>
+  <text class="it" x="676" y="129" text-anchor="middle">yes</text>
+
+  <rect class="box" x="712" y="110" width="150" height="52" rx="2"/>
+  <text class="mono" x="787" y="132" text-anchor="middle">ship</text>
+  <text class="ser"  x="787" y="149" text-anchor="middle">export · catalog · commit</text>
+
+  <path class="fb" d="M566,162 L566,206 L109,206 L109,168" marker-end="url(#l2)"/>
+  <text class="it gold" x="337" y="223" text-anchor="middle">no: fix the weakest frame, repeat</text>
+</svg>

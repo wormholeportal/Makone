@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Makone player</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05060a; overflow: hidden; }
+  #stage { position: fixed; inset: 0; }
+  #hud { position: fixed; left: 12px; bottom: 10px; color: #cbd5e1; opacity: 0.75;
+         font: 12px/1.5 ui-monospace, monospace; pointer-events: none; white-space: pre; }
+  #err { position: fixed; inset: auto 12px 40px 12px; color: #fca5a5;
+         font: 12px ui-monospace, monospace; white-space: pre-wrap; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "/node_modules/three/build/three.module.js",
+    "three/addons/": "/node_modules/three/examples/jsm/",
+    "manifold-3d": "/node_modules/manifold-3d/manifold.js",
+    "mannequin-js/": "/node_modules/mannequin-js/",
+    "makone/game": "/runtime/game/index.js",
+    "@dimforge/rapier3d-compat": "/node_modules/@dimforge/rapier3d-compat/rapier.mjs"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hud"></div>
+<div id="err"></div>
+<script type="module">
+import { loadWorld } from '/runtime/world.js';
+
+const q = new URLSearchParams(location.search);
+const name = q.get('world');           // path under /worlds/, e.g. lighthouse
+const part = q.get('part');            // path under /worlds/, e.g. gramophone/parts/horn.js
+const captureMode = q.get('capture') === '1';
+window.__ready = false;
+
+try {
+  if (!name && !part) throw new Error('missing ?world=<name> (or ?part=<name>/parts/<file>.js)');
+  const { meta, world } = part
+    ? await loadPart(part, document.getElementById('stage'))
+    : await loadWorld(`/worlds/${name}`, document.getElementById('stage'));
+  window.__world = world;
+  window.__meta = meta;
+  document.title = `${meta.name} — Makone`;
+  document.getElementById('hud').textContent =
+    meta.name + (meta.brief ? `\n${meta.brief}` : '');
+
+  // First paint before any loop (docs/principles.md E2): if this throws we see it now.
+  world.renderFrame(0);
+  window.__ready = true;
+
+  // Deterministic stepping + camera orbit hooks for the harness.
+  window.__step = (dt, n = 1) => { for (let i = 0; i < n; i++) world.renderFrame(dt); };
+
+  // Fraction of the frame that changed since the last call, 0..1 (verify's `animated` fact, D6).
+  // Fraction, not mean delta: averaging over the whole frame dilutes local motion into nothing —
+  // a steam wisp and two walking figures measured 0.0014 that way, i.e. "static".
+  // drawImage must happen in the same task as renderFrame or the WebGL buffer is already gone.
+  window.__motion = (() => {
+    const N = 96, EPS = 10;                 // per-channel 8-bit delta that counts as "changed"
+    const buf = document.createElement('canvas');
+    buf.width = buf.height = N;
+    const ctx = buf.getContext('2d', { willReadFrequently: true });
+    let prev = null;
+    return () => {
+      world.renderFrame(0);
+      ctx.drawImage(world.getCanvas(), 0, 0, N, N);
+      const cur = ctx.getImageData(0, 0, N, N).data;
+      let changed = 0;
+      if (prev) {
+        for (let i = 0; i < cur.length; i += 4) {
+          const d = (Math.abs(cur[i] - prev[i]) + Math.abs(cur[i + 1] - prev[i + 1])
+                   + Math.abs(cur[i + 2] - prev[i + 2])) / 3;
+          if (d > EPS) changed++;
+        }
+      }
+      prev = cur;
+      return changed / (N * N);
+    };
+  })();
+
+  // The value range of the frame, 0..1 (verify's `luma` fact, D6).
+  //
+  // Read AFTER tone mapping and colour management — this is the number the eye gets, not the
+  // linear one the shader computed, and "is this too dark to read" is a question about the eye.
+  //
+  // Three statistics, because one cannot tell the two failure modes apart:
+  //   median — is the picture as a whole sitting in the low end?
+  //   dark   — how much of it is crushed to unreadable black?
+  //   bright — is there a real highlight anywhere? A dark world is allowed to be dark, but a
+  //            dark world with no bright accent is mud, and that is the case worth catching.
+  window.__luma = (() => {
+    const N = 96;
+    const buf = document.createElement('canvas');
+    buf.width = buf.height = N;
+    const ctx = buf.getContext('2d', { willReadFrequently: true });
+    return () => {
+      world.renderFrame(0);
+      ctx.drawImage(world.getCanvas(), 0, 0, N, N);
+      const d = ctx.getImageData(0, 0, N, N).data;
+      const v = new Float32Array(N * N);
+      let dark = 0, bright = 0;
+      for (let i = 0, k = 0; i < d.length; i += 4, k++) {
+        // Rec. 709 relative luminance on the sRGB values as displayed
+        const y = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+        v[k] = y;
+        if (y < 0.05) dark++;
+        if (y > 0.55) bright++;
+      }
+      v.sort();
+      const q = (f) => v[Math.min(v.length - 1, Math.floor(f * v.length))];
+      return {
+        median: q(0.5), p95: q(0.95),
+        dark: dark / (N * N), bright: bright / (N * N),
+      };
+    };
+  })();
+  window.__orbit = (azimuthDeg, elevationDeg = null) => {
+    const cam = world.getCamera();
+    const target = world.getOrbitControls?.()?.target ?? { x: 0, y: 0, z: 0 };
+    const dx = cam.position.x - target.x, dy = cam.position.y - target.y, dz = cam.position.z - target.z;
+    const r = Math.hypot(dx, dz);
+    const az = (azimuthDeg * Math.PI) / 180;
+    const y = elevationDeg == null ? dy : Math.hypot(r, dy) * Math.sin((elevationDeg * Math.PI) / 180);
+    cam.position.set(target.x + r * Math.sin(az), target.y + y, target.z + r * Math.cos(az));
+    cam.lookAt(target.x, target.y, target.z);
+    world.renderFrame(0);
+  };
+
+  if (!captureMode) {
+    let last = performance.now();
+    const loop = (now) => {
+      world.renderFrame(Math.min((now - last) / 1000, 0.05));
+      last = now;
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+    addEventListener('resize', () => world.resize());
+  }
+} catch (err) {
+  document.getElementById('err').textContent = String(err.stack || err);
+  console.error(err);
+}
+
+/** Load ONE part into the studio (D7). A part is a pure `build(params) -> Object3D`;
+ *  runtime/studio.js dresses it and hands back something that satisfies the WorldModule
+ *  contract, so everything downstream (capture, inspect, orbit hooks) works unchanged. */
+async function loadPart(rel, container) {
+  const mod = await import(`/worlds/${rel}`);
+  if (typeof mod.default !== 'function') throw new Error(`${rel} must export default build(params)`);
+  const MK = await import('/runtime/solid.js');
+  await MK.init();                       // parts may use CSG; init is idempotent and degrades on its own
+  const { createStudio } = await import('/runtime/studio.js');
+  const root = await mod.default(mod.params);
+  return {
+    meta: { name: rel, params: mod.params ?? null, inventory: mod.inventory ?? null,
+            datum: mod.datum ?? 'grounded' },
+    world: createStudio(container, root),
+  };
+}
+</script>
+</body>
+</html>

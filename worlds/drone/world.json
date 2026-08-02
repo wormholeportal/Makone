@@ -1,0 +1,13 @@
+{
+  "name": "drone",
+  "title": "Camera Quadcopter",
+  "type": "object",
+  "format": "module",
+  "entry": "main.js",
+  "brief": "matte grey composite and carbon, four blades feathered, the gimbal hanging level",
+  "budget": {
+    "tris": 280000,
+    "drawCalls": 200
+  },
+  "cover": "cover.png"
+}

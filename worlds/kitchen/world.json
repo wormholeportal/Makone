@@ -1,0 +1,16 @@
+{
+  "name": "kitchen",
+  "title": "Kitchen",
+  "type": "scene",
+  "format": "module",
+  "entry": "main.js",
+  "cover": "cover.png",
+  "brief": "Prep, wok, plate \u2014 the line in motion",
+  "source": "MakoneLift/vr/kitchen.html \u2014 scene code verbatim, adapted to r183 ESM + WorldModule",
+  "capture": {
+    "arc": [
+      -45,
+      90
+    ]
+  }
+}

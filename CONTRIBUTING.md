@@ -1,100 +1,75 @@
 # Contributing
 
-Thanks for helping improve Makone Arcade. The project is designed so a new game
-submission is small and reviewable.
+Two kinds of contribution, two different bars.
 
-## Development Setup
+## Contributing a world
 
-```bash
-npm ci
-npm run dev
-```
-
-Before opening a pull request:
+A world is a directory under `worlds/`. Scaffold it, build it, and — this is the part
+that matters — **look at it**:
 
 ```bash
-npm run check
+npm run create -- <world> --type scene --brief "4am at the fishing harbour, wet light"
+npm run capture -- <world> --shots 4      # look at every frame
+npm run verify -- <world>                 # must pass
 ```
 
-## Submit A Game
+Checklist before you open a pull request:
 
-1. Create `games/your-game-id.js`.
-2. Add metadata to `src/games/catalog.ts`.
-3. Keep the `id` equal to the filename without `.js`.
-4. Test the game route at `/#/play/your-game-id`.
-5. Open a pull request.
+- `npm run verify -- <world>` passes: no console errors, the contract is complete, the
+  world stays inside its declared budget.
+- **The PR includes frames.** A change you can see arrives with the screenshots that
+  show it. "It looks better now" is not reviewable.
+- `world.json` has a `brief` — one specific sentence, concrete enough to smell. It is
+  the thing your own review is judged against.
+- The name is one lowercase word, no hyphens or underscores, and matches the directory.
+- Pure code only: procedural geometry, CSG, shaders. **Nothing binary is an input** — no
+  imported meshes, no texture packs, no baked maps. The only binaries a world ships are
+  ones its own code produced: `cover.png` (plus `cover.gif` if you shot one) and the
+  single-file export.
+- `npm run check` passes (the generated catalog is up to date).
 
-Example catalog entry:
+## Contributing a skill
 
-```ts
-{
-  id: 'your-game-id',
-  title: 'Your Game',
-  tagline: 'A short hook for the detail sheet.',
-  controls: 'WASD to move',
-  tags: ['Arcade', 'Single player'],
-  cat: 'ARCADE',
-  accent: '#f28b78',
-  pos: [0, 12],
-}
-```
+Skills live in `skills/` and change how every future world gets built, so the bar is
+higher than "this reads well":
 
-## Game Module Contract
+- Pick an existing world the skill touches, rebuild it **before** your change, then again
+  **after**, and put both sets of frames in the PR.
+- If the output is not visibly better, the change is bloat. That is a real outcome, not
+  a failure — say so and close it.
+- Keep the voice: terse, opinionated, drawn from something that actually went wrong.
+  A skill that reads like a generic tutorial is a skill nobody loads twice.
+- One directory per job. Do not add a directory for symmetry (see `skills/SKILL.md`).
 
-Each game default-exports a `createScene(container)` function:
+## Fixing the harness or runtime
 
-```js
-import * as THREE from 'three'
+- `harness/` scripts are one verb, one job. Shared, non-command code gets its own module
+  and a noun name — `lib.mjs` for the browser bring-up, `sheet.mjs` for the composer.
+- `runtime/` is the browser-side contract. Changing `world.js` changes every world, so
+  verify the whole library before and after — there is no `--all`, loop it:
 
-export default async function createScene(container) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setSize(container.clientWidth, container.clientHeight)
-  container.appendChild(renderer.domElement)
+  ```bash
+  for w in worlds/*/; do node harness/verify.mjs "$(basename "$w")" || echo "FAIL $w"; done
+  ```
+- Extract into `runtime/` only when **three** worlds need the same thing. Two is a
+  coincidence (see `docs/principles.md`).
 
-  let raf = 0
-  function loop() {
-    raf = requestAnimationFrame(loop)
-    renderer.render(scene, camera)
-  }
-  loop()
+## House rules
 
-  return {
-    resize(width, height) {
-      renderer.setSize(width, height)
-    },
-    dispose() {
-      cancelAnimationFrame(raf)
-      renderer.dispose()
-      renderer.domElement.remove()
-    },
-  }
-}
-```
+- **English only** in code, comments and docs.
+- **Frames go in the pull request, not in the repository.** `capture` and `inspect` write
+  into `worlds/<name>/shots/`, which is where you review them — but a review packet is
+  hundreds of near-identical PNGs, and that is not what a git history is for. Post the
+  handful that show the change; leave `shots/` out of the commit.
+- The single-file export **is** committed: it is one artifact, it is the work, and it lets
+  anyone open the world by double-clicking without cloning or installing a thing.
+- Adapting an existing work is wiring only — entry point, loop, contract. Its geometry,
+  materials and tuning are the author's; carry them over verbatim.
+- If a bug repeats, do not just fix it twice — write the axiom that prevents both in
+  `docs/principles.md`.
 
-The host owns the container. The game owns its own renderer, animation loop,
-input listeners, UI nodes, audio, physics worlds, and cleanup.
+## Reporting a bug
 
-## Review Checklist
-
-- The game starts without console errors.
-- It cleans up all animation frames, event listeners, DOM nodes, and WebGL
-  resources in `dispose()`.
-- It remains playable on a low-power laptop.
-- It avoids overlapping the site back button and game menus.
-- It does not load remote scripts or require a backend server.
-- It uses only the allowed imports listed in `games/README.md`.
-
-## Covers
-
-If visuals changed, run:
-
-```bash
-npm run gen-covers
-```
-
-This regenerates kiosk screenshots in `games/covers/`.
-
-## License
-
-By contributing, you agree that your contribution is licensed under the MIT
-License used by this repository.
+Include the world name, the exact command you ran, the JSON that `verify` printed, and
+a frame. A blank canvas is almost always a first-frame exception — check the console
+first (`docs/principles.md`, axiom E3).

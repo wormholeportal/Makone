@@ -1,0 +1,10 @@
+{
+  "name": "factory",
+  "title": "Assembly Floor",
+  "type": "scene",
+  "format": "module",
+  "entry": "main.js",
+  "cover": "cover.png",
+  "brief": "Workers threading between robot arms and AGVs",
+  "source": "MakoneLift/vr/factory.html — scene code verbatim, adapted to r183 ESM + WorldModule"
+}

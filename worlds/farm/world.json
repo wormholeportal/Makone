@@ -1,0 +1,10 @@
+{
+  "name": "farm",
+  "title": "Farm",
+  "type": "scene",
+  "format": "module",
+  "entry": "main.js",
+  "cover": "cover.png",
+  "brief": "Livestock, a tractor, a day of chores",
+  "source": "MakoneLift/vr/farm.html — scene code verbatim, adapted to r183 ESM + WorldModule"
+}

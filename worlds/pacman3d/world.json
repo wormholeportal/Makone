@@ -1,0 +1,9 @@
+{
+  "name": "pacman3d",
+  "title": "Pacman 3D",
+  "type": "game",
+  "format": "module",
+  "entry": "main.js",
+  "cover": "cover.png",
+  "brief": "the maze chase, rebuilt in three dimensions"
+}

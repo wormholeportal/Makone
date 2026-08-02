@@ -1,0 +1,9 @@
+{
+  "name": "drift",
+  "title": "Drift",
+  "type": "game",
+  "format": "module",
+  "entry": "main.js",
+  "cover": "cover.png",
+  "brief": "rear wheels out, holding the angle through a night circuit"
+}

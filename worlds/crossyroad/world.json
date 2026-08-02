@@ -1,0 +1,9 @@
+{
+  "name": "crossyroad",
+  "title": "Crossy Road",
+  "type": "game",
+  "format": "module",
+  "entry": "main.js",
+  "cover": "cover.jpg",
+  "brief": "one hop at a time across traffic, river and rails — the road never ends, only your nerve does"
+}

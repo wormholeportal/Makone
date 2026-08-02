@@ -1,0 +1,13 @@
+{
+  "name": "violin",
+  "title": "Violin",
+  "type": "object",
+  "format": "module",
+  "entry": "main.js",
+  "brief": "spruce and flamed maple under old varnish, four strings caught over the bridge",
+  "budget": {
+    "tris": 300000,
+    "drawCalls": 160
+  },
+  "cover": "cover.png"
+}

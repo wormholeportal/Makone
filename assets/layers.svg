@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" width="880" height="400" role="img" aria-label="Four layers — knowledge, authoring, running, observation — with frames and facts returning from the observation layer to the authoring layer.">
+  <style>
+    .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12.5px; font-weight: 600; fill: #16191d; letter-spacing: -.01em; }
+    .ser  { font-family: "Times New Roman", Times, "Nimbus Roman", Georgia, serif;
+            font-size: 11.5px; fill: #4a5058; }
+    .it   { font-family: "Times New Roman", Times, "Nimbus Roman", Georgia, serif;
+            font-size: 11px; font-style: italic; fill: #4a5058; }
+    .tag  { font-family: "Times New Roman", Times, "Nimbus Roman", Georgia, serif;
+            font-size: 10px; fill: #8b93a0; letter-spacing: .14em; }
+    .box  { fill: none; stroke: #16191d; stroke-width: 1; }
+    .key  { fill: #f2f2ef; stroke: #16191d; stroke-width: 1; }
+    .ln   { stroke: #16191d; stroke-width: 1; fill: none; }
+    .fb   { stroke: #8a6d00; stroke-width: 1.2; fill: none; stroke-dasharray: 5 3; }
+    .mk   { fill: #8a6d00; }
+    .mn   { fill: #16191d; }
+    .gold { fill: #8a6d00; }
+    @media (prefers-color-scheme: dark) {
+      .mono { fill: #e6edf3; }
+      .ser, .it { fill: #9aa4af; }
+      .tag { fill: #6e7681; }
+      .box, .ln { stroke: #c9d1d9; }
+      .key { fill: #1c2128; stroke: #c9d1d9; }
+      .mn  { fill: #c9d1d9; }
+      .fb  { stroke: #e3b341; }
+      .mk, .gold { fill: #e3b341; }
+    }
+  </style>
+  <defs>
+    <marker id="y1" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,1 L7.4,4 L0,7 z" class="mn"/>
+    </marker>
+    <marker id="y2" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,1 L7.4,4 L0,7 z" class="mk"/>
+    </marker>
+  </defs>
+
+  <text class="tag" x="34" y="24">I. KNOWLEDGE</text>
+  <rect class="box" x="34" y="32" width="700" height="48" rx="2"/>
+  <text class="mono" x="52" y="52">AGENTS.md</text>
+  <text class="ser"  x="52" y="70">the router · skills/ — world · craft · game · object · three</text>
+
+  <path class="ln" d="M384,80 L384,110" marker-end="url(#y1)"/>
+  <text class="it" x="394" y="100">what good means</text>
+
+  <text class="tag" x="34" y="128">II. AUTHORING</text>
+  <rect class="key" x="34" y="136" width="700" height="48" rx="2"/>
+  <text class="mono" x="52" y="156">agent → worlds/&lt;name&gt;/</text>
+  <text class="ser"  x="52" y="174">world.json · main.js · params.js · parts/</text>
+
+  <path class="ln" d="M384,184 L384,214" marker-end="url(#y1)"/>
+  <text class="it" x="394" y="204">imports, through an import map</text>
+
+  <text class="tag" x="34" y="232">III. RUNNING</text>
+  <rect class="box" x="34" y="240" width="700" height="48" rx="2"/>
+  <text class="mono" x="52" y="260">runtime/ → index.html · play.html</text>
+  <text class="ser"  x="52" y="278">contract · CSG · actors · studio · game toolkit — one page for humans and the harness</text>
+
+  <path class="ln" d="M384,288 L384,318" marker-end="url(#y1)"/>
+  <text class="it" x="394" y="308">driven headlessly</text>
+
+  <text class="tag" x="34" y="336">IV. OBSERVATION</text>
+  <rect class="box" x="34" y="344" width="700" height="48" rx="2"/>
+  <text class="mono" x="52" y="364">harness/</text>
+  <text class="ser"  x="52" y="382">serve · capture · verify — frames to look at, facts that cannot be argued with</text>
+
+  <path class="fb" d="M734,368 L800,368 L800,160 L740,160" marker-end="url(#y2)"/>
+  <text class="it gold" x="818" y="264" text-anchor="middle" transform="rotate(-90 818 264)">frames + facts</text>
+</svg>

@@ -1,0 +1,13 @@
+{
+  "name": "camera",
+  "title": "35mm SLR",
+  "type": "object",
+  "format": "module",
+  "entry": "main.js",
+  "brief": "cold chrome and grained leather, the lens front element holding one blue reflection",
+  "budget": {
+    "tris": 220000,
+    "drawCalls": 160
+  },
+  "cover": "cover.png"
+}
