@@ -29,3 +29,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Review artifacts: capture/inspect write here. Look at them, do not commit them.
+worlds/*/shots/
