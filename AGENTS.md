@@ -6,47 +6,43 @@ the work lands in `worlds/<name>/`.
 
 ## Read first
 
-1. `[docs/principles.md](./docs/principles.md)` — scar-tissue axioms, re-read before every session
-2. `[docs/architecture.md](./docs/architecture.md)` — layers, contracts and the reasoning behind them
+1. [`docs/principles.md`](./docs/principles.md) — scar-tissue axioms, re-read before every session
+2. [`docs/architecture.md`](./docs/architecture.md) — layers, contracts and the reasoning behind them
 
 ## Routing: what does the user want to build?
 
-
-| Intent                                                                 | Skill to take                                                                                            |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Scene / world / environment (still or alive)                           | `skills/world/`                                                                                          |
-| Game / something playable                                              | `skills/world/` + `skills/game/`                                                                         |
-| A single object (a thing you hold in your hand)                        | `skills/world/` + `skills/object/`                                                                       |
-| Characters / creatures / NPCs · materials, light, colour · performance | `skills/craft/` (pull single pages as needed)                                                            |
-| Choosing the value range / palette / whether to go dark                | `skills/craft/palette-families.md` — read it BEFORE you place lights, from any of the three routes above |
-| three.js technical questions                                           | `skills/three/`                                                                                          |
-
+| Intent | Skill to take |
+|---|---|
+| Scene / world / environment (still or alive) | `skills/world/` |
+| Game / something playable | `skills/world/` + `skills/game/` |
+| A single object (a thing you hold in your hand) | `skills/world/` + `skills/object/` |
+| Characters / creatures / NPCs · materials, light, colour · performance | `skills/craft/` (pull single pages as needed) |
+| Choosing the value range / palette / whether to go dark | `skills/craft/palette-families.md` — read it BEFORE you place lights, from any of the three routes above |
+| three.js technical questions | `skills/three/` |
 
 Five layers of skills: `world/` overall workflow · `craft/` general craft · `game/` game-specific · `object/` single-object-specific · `three/` API reference.
-**Every skill directory has a** `SKILL.md` — its index, routing problem → page. Read that
+**Every skill directory has a `SKILL.md`** — its index, routing problem → page. Read that
 one file, then pull only the page you need; `skills/SKILL.md` is the index of indexes.
 Everything in this repo — code, comments, docs — is written in English. Talk to the user in their own language.
 
 ## Hard rules (non-negotiable)
 
 1. **Brief first**: before touching code, nail down one specific feeling worth being obsessive about, and write it into the `brief` field of `world.json` — one sentence, concrete enough to smell.
-  Then **commit to a lighting key** in the same file — `natural` (the default) · `low` · `high`.
+   Then **commit to a lighting key** in the same file — `natural` (the default) · `low` · `high`.
    `verify` measures the frame's value range and fails a world that contradicts its own key
    (`skills/world/SKILL.md` step 3). This exists because "brief first" pulls hard toward dusk,
    night and rain — evocative writing does — and darkness is the cheapest way to hide unfinished
    form. Going dark is allowed; drifting there is not.
 2. **Only a closed loop counts as done**: after changing code you must run `node harness/capture.mjs <name>`,
-  look at the shots yourself, and self-assess honestly against the skill's standards. **No screenshot evidence, no claiming it's done.**
+   look at the shots yourself, and self-assess honestly against the skill's standards. **No screenshot evidence, no claiming it's done.**
    The single-file HTML is part of done, not a follow-up — a passing `verify` writes it for you, and
    `export.mjs --check` fails if a module world has none.
 3. **Pure-code assets**: no external GLTF/texture libraries. Form = procedural geometry + CSG + shaders, characters = mannequin-js.
 4. **Complete contract**: every world exports `createWorld(container)` satisfying the `runtime/world.js` contract.
-  **Capabilities are not declared** — implementing `seekTo` means you have a timeline, implementing `act` means you're playable; the harness probes for it (architecture D6).
+   **Capabilities are not declared** — implementing `seekTo` means you have a timeline, implementing `act` means you're playable; the harness probes for it (architecture D6).
 5. **Reuse, don't rebuild**: when an existing work has to move to a new contract, change the wiring only — entry point, loop, contract methods. Its geometry, materials and tuning are the author's. If you want a different work, make a new one.
 6. **Physics is opt-in**: only put Rapier on things that must move; quality comes first.
 7. **checkpoint = git commit**: one commit per milestone, roll back with git.
-
-
 
 ## worlds (details in worlds/README.md)
 

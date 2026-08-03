@@ -79,13 +79,81 @@ if (caps.timeline) {
   timelineMoves = await page.evaluate(() => window.__motion());
 }
 
+// Budget is measured by WALKING THE SCENE, not by reading `renderer.info`.
+//
+// info.render is reset on every renderer.render() call, and a world that renders through an
+// EffectComposer calls it once per pass — so info holds only the LAST pass, a full-screen quad.
+// Measured on erdtree: 181 meshes and ~614k triangles reported as `{triangles: 1, calls: 1}`.
+// Four worlds in this repo render through a composer, two of them declare budgets, and all of
+// them passed this gate unconditionally. The gate documented (architecture D-budget) as the one
+// number that resisted drift was silently dead exactly where scenes get heavy enough to need it.
+//
+// Walking the graph decouples the gate from how a world chooses to render. It counts scene
+// CONTENT rather than what the frustum drew, so it is an upper bound — which is the right bias
+// for a budget: you are promising what you built, not what happened to be on screen.
 const info = await page.evaluate(() => {
-  const r = window.__world.getRenderer().info.render;
+  const scene = window.__world.getScene();
+  const isWhite = (c) => !c || (c.r > 0.99 && c.g > 0.99 && c.b > 0.99);
+  let triangles = 0, drawCalls = 0;
+  const audit = [];
+  const say = (o, msg) => audit.push(`${o.name || o.type}: ${msg}`);
+
+  scene.traverse((o) => {
+    if (!o.visible || !(o.isMesh || o.isPoints || o.isLine)) return;
+    const g = o.geometry;
+    if (g) {
+      const verts = g.index ? g.index.count : (g.attributes.position?.count || 0);
+      triangles += Math.round((verts / 3) * (o.isInstancedMesh ? o.count : 1));
+    }
+    drawCalls += 1;
+
+    // Material traps: every one of these renders as "too dark" or "black", which reads
+    // like a lighting problem and sends you off tuning lights for hours. They are all
+    // statically detectable, so detect them.
+    for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+      if (!m) continue;
+      if (m.vertexColors === true && !g?.attributes.color) {
+        say(o, 'material.vertexColors is true but the geometry has no `color` attribute — the '
+          + 'shader multiplies by an undefined attribute (= 0) and the mesh renders black. '
+          + "An InstancedMesh's instanceColor needs no flag at all.");
+      }
+      if (o.isInstancedMesh && o.instanceColor && !isWhite(m.color)) {
+        say(o, `material.color (#${m.color.getHexString()}) MULTIPLIES instanceColor — tinting `
+          + 'both crushes the result. Let the instances carry the colour and keep the material white.');
+      }
+      if (o.isInstancedMesh && m.side === 2 /* DoubleSide */) {
+        say(o, 'DoubleSide flips the normal on back faces. If this geometry carries authored '
+          + 'normals (e.g. grass blades tilted skyward), half of them end up pointing at the '
+          + 'ground. Author the back faces into the geometry and use FrontSide instead.');
+      }
+      if (m.map && m.map.colorSpace !== 'srgb') {
+        say(o, 'material.map is a colour texture but its colorSpace is not SRGBColorSpace — '
+          + 'it will render desaturated and dark.');
+      }
+    }
+  });
+
   return {
-    triangles: r.triangles, drawCalls: r.calls,
+    triangles, drawCalls, audit: [...new Set(audit)],
     budget: window.__meta.budget || null,
     key: window.__meta.key || 'natural',
   };
+});
+
+// Frame cost. Headless chromium renders in software, so the ABSOLUTE number means nothing
+// about a real GPU — but it is measured identically for every world, so it compares them
+// honestly and catches a world that got 10x heavier. readPixels forces the GPU to finish;
+// without it this times how fast we can queue work, not how long the frame takes.
+const frameMs = await page.evaluate(() => {
+  const w = window.__world, gl = w.getRenderer().getContext(), px = new Uint8Array(4);
+  const tick = () => {
+    w.renderFrame(1 / 60);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  };
+  for (let i = 0; i < 5; i++) tick();                       // warm up shaders and caches
+  const t = [];
+  for (let i = 0; i < 25; i++) { const a = performance.now(); tick(); t.push(performance.now() - a); }
+  return Number(t.sort((a, b) => a - b)[12].toFixed(1));    // median
 });
 await close();
 
@@ -128,15 +196,20 @@ if (problems.length === 0 && !process.argv.includes('--no-export')) {
   bundle = (await exportWorld({ path: name })).trim();
 }
 
+const { audit, ...facts } = info;
 console.log(JSON.stringify({
   world: name,
   ...caps,
   animated: motion > MOTION,
   motion: Number(motion.toFixed(4)),
+  frameMs,
   luma,
-  ...info,
+  ...facts,
   pass: problems.length === 0,
   problems,
+  // Heuristics, not gates: each one is a real trap this repo has hit, but a world is allowed
+  // to do any of them on purpose. They warn, they never fail a build.
+  warnings: audit,
   bundle,
 }, null, 2));
 process.exit(problems.length ? 1 : 0);

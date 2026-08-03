@@ -47,9 +47,10 @@ confidently and gets subtly wrong — stop and bring the human's taste in (see
 [`workflow.md`](./workflow.md)):
 
 1. **The feeling** (before any code): offer a few seeds, let the human pick the
-   one with a pulse (`ask_user`).
-2. **The look** (once the verb is proven fun): lock art direction together
-   (`generate_concept_images` → `request_image_review`).
+   one with a pulse. Just ask, in whatever way your harness asks things.
+2. **The look** (once the verb is proven fun): lock art direction together —
+   **ask the human for reference frames**, then close the gap to them with
+   `capture`. See [`workflow.md`](./workflow.md) Fork 2.
 3. **The ending** (before "done"): show the last 10 seconds, ask if the feeling
    landed.
 
@@ -88,7 +89,7 @@ name the feeling  →  build a vertical slice  →  CAPTURE & LOOK
 1. **Name the feeling, and offer a few.** Do
    [`fantasy-test.md`](./fantasy-test.md): a feeling worth being
    obsessive about + a core verb that *embodies* it + one arresting frame. For a
-   fresh game, sketch **3–5 seeds** and let the human pick (Fork 1, `ask_user`).
+   fresh game, sketch **3–5 seeds** and let the human pick (Fork 1).
    Don't silently commit to one.
 2. **Write a one-paragraph bible for the chosen seed** (a creative prompt, not a
    form):
@@ -100,14 +101,16 @@ name the feeling  →  build a vertical slice  →  CAPTURE & LOOK
    Keep it loose. The point is to *decide the soul* before geometry, so the build
    has something to aim at.
 
-3. **Visualize the look — AFTER the verb is proven, not before** (Fork 2). The
-   trap is leading with concept art: pretty frames make you build a *diorama*
+3. **Pin the look to real frames — AFTER the verb is proven, not before** (Fork 2).
+   The trap is leading with concept art: pretty frames make you build a *diorama*
    and skip proving the game is fun. So first build a playable slice and confirm
-   the verb carries the feeling. *Then* use `generate_concept_images` to turn the
-   chosen feeling into art-direction frames (hero / world / the key emotional
-   moment) and `request_image_review` for an art-director critique + the human's
-   approval. Approved frames are your **visual target** — `node harness/capture.mjs <world>` while
-   building and close the gap. Skip for throwaway prototypes.
+   the verb carries the feeling. *Then* **ask the human for two or three
+   reference frames** — a screenshot of a game with the right mood, a photo, a
+   painting. Ask for them explicitly; humans rarely think to volunteer them, and
+   a pasted screenshot corrects a wrong art direction faster than any number of
+   words. Those frames are your **visual target**: `node harness/capture.mjs <world>`,
+   put your shot next to theirs, name the biggest gap, close it, repeat.
+   Skip for throwaway prototypes.
 
 Then build the slice, prove the verb, lock the look, capture, close the gap,
 subtract, land the ending.

@@ -23,11 +23,13 @@ don't reduce them to rubber-stamps — bring a real proposal and a real question
   feeling + the verb that embodies it + the one arresting frame. Show them to
   the human and let them pick the one with a pulse. Picking the seed is the
   single highest-leverage decision in the whole game; it's worth 30 seconds of
-  the human's taste. Use `ask_user`.
+  the human's taste. Just ask — in whatever way your harness asks things.
 - **Fork 2 — the look (once the verb is proven fun).** When you have a playable
-  slice, lock the art direction *with* the human: `generate_concept_images` for
-  the chosen feeling, then `request_image_review`. Approved frames become your
-  visual target.
+  slice, lock the art direction *with* the human by **asking them for two or
+  three reference frames** — a screenshot of a game with the right mood, a photo,
+  a painting. Ask explicitly; humans rarely volunteer them. Then shoot your own
+  world with `capture` and put the two side by side. A pasted screenshot corrects
+  a wrong art direction faster than any amount of description.
 - **Fork 3 — the ending (before you call it done).** The last 10 seconds are
   where a feeling either lands or evaporates. Show the human the ending beat
   (capture it, or describe it) and ask one question: *did it land?* If the
@@ -78,13 +80,14 @@ death traps. Use it to narrow scope, not as a template.
 
 Build the smallest thing that lets you *feel the verb*: move / update / state,
 plus a rough version of the hero and the world's mood. Drive it via
-`getState`/`sendInput` to confirm the core verb actually works and is
+`getState`/`act` to confirm the core verb actually works and is
 satisfying — before pouring time into art. Grey-ish boxes are OK here, but rough
 in the palette and one mood-setting light early; a fully grey box hides the
 visual problems that sank past games.
 
 Then, with the verb proven fun, do **Fork 2**: lock the art direction with the
-human (`generate_concept_images` + `request_image_review`).
+human by asking them for reference frames, and close the gap to those frames
+with `capture`.
 
 A `<game>.design.md` next to your code holds the feeling / verb / frame /
 ending from Step 0. It's a compass, not a deliverable to be graded.

@@ -18,6 +18,15 @@
 //                                                     #   get a before/after — comparing against memory
 //                                                     #   is how a regression survives a review.
 //   node harness/capture.mjs <name> --sheet           # same sheet, no reference
+//   node harness/capture.mjs <name> --hero            # ONE frame at 1920×1080, not in any sheet
+//
+// --hero exists because a contact sheet is a comparison tool and a bad verification tool, and
+// the difference is not obvious until it costs you. On the clipper every gate was green and all
+// six part sheets were clean while the masts were passing straight THROUGH the canvas of six
+// sails and every sail was self-shadowing into black ragged patches. Both were invisible in a
+// 900×600 review cell and both were unmissable the first time a frame was rendered at full size.
+// A thumbnail can tell you which of two frames is better. It cannot tell you whether either one
+// is finished. Shoot one of these and actually look at it before you call a world done.
 //
 // Output: PNG paths on stdout (one per line) + console-error summary. Exit 1 on errors.
 import { promises as fs } from 'node:fs';
@@ -33,7 +42,10 @@ const opt = (flag, dflt) => { const i = args.indexOf(flag); return i > 0 ? args[
 const shotsFlag = opt('--shots', null);
 const atsFlag = opt('--at', null);
 const afterFlag = opt('--after', null);
-const [width, height] = opt('--size', '1280x720').split('x').map(Number);
+// A hero frame defaults BIG. The whole point of it is the resolution, so making the caller
+// remember --size would defeat it on exactly the runs where it matters.
+const hero = args.includes('--hero');
+const [width, height] = opt('--size', hero ? '1920x1080' : '1280x720').split('x').map(Number);
 // A world's shots land WITH the world (worlds/<name>/shots/), so the frames sit next to the
 // code that made them while you review. They are review artifacts, not history — look, then
 // keep them out of the commit; the ones that matter belong in the pull request.

@@ -90,7 +90,7 @@ Every world is procedural code. Hover a card in the local gallery to see it move
 through to read the source that made it.
 
 <!-- gallery:start -->
-#### Scenes
+### Scenes · 6
 
 A place that exists and keeps living. Judged by whether a still frame holds up — and whether anything moves when nobody touches it.
 
@@ -121,7 +121,7 @@ A place that exists and keeps living. Judged by whether a still frame holds up �
 </tr>
 </table>
 
-#### Games
+### Games · 6
 
 A place with a verb and a way to lose. Judged by whether there is a decision every few seconds.
 
@@ -152,7 +152,7 @@ A place with a verb and a way to lose. Judged by whether there is a decision eve
 </tr>
 </table>
 
-#### Objects
+### Objects · 6
 
 One thing, built to be turned over. Judged by whether the form reads from every angle.
 
