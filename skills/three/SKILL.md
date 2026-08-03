@@ -33,6 +33,9 @@ Design decisions live in `skills/craft/` and `skills/world/`.
 ## Engine engineering (recurring failure modes)
 
 - `blank-canvas.md` — blank page? start here (docs/principles.md E3)
+- `instancing-traps.md` — **everything renders black or muddy?** the four
+  InstancedMesh traps, all of which look like lighting bugs and are not
+  (`verify` warns about them)
 - `shared-resources.md` — the allocation rule (E4)
 - `update-order.md` — what must happen before what, and data coherence (E6)
 - `timestep.md` — when a fixed step is required

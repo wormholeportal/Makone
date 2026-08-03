@@ -32,6 +32,14 @@
  *  @property {() => object} [getState]     serializable, includes win/lose / terminal state
  *  @property {(input:object) => void} [act]
  *  @property {() => object} [observe]      compact observation from the bot's point of view
+ *
+ *  Implementing this family is a CLAIM, and the claim is checked from outside: a playable world
+ *  owes a `worlds/<name>/pilot.js` that flies it using observe/getState/act and nothing else
+ *  (`harness/botplay.mjs`). `observe` describes, `act` commands, and only a loop closed between
+ *  them from outside proves the two agree — a world's own autopilot shares its bugs and proves
+ *  nothing. `gorge` shipped an inverted yaw sign and a completely inert `act()` behind a green
+ *  `interactive: true`; both fell out of the first pilot run (docs/principles.md E11).
+ *  Corollary: if both `act` and a keyboard write one input struct, decide which wins on purpose.
  */
 
 /** Load one world directory (shared by the gallery and the harness). */

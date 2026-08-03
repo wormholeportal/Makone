@@ -53,6 +53,24 @@ The numbers exist because the eye reads a wrong-sized object as "fine".
 Numbers never lose to an impression. An impression can send you looking for a number that is not
 being measured yet — that is what it is for.
 
+## The sheet is a comparison tool, not a verification tool
+
+Every cell on a contact sheet is ~900×600, and an assembled world's shots are 1280×720. Two
+whole classes of defect live under that: **parts interpenetrating** (one piece passing through
+another — no tool checks for it, because `inspect` reviews each part alone and joints are an
+assembly property), and **thin-surface shadow artifacts**. On the clipper both were present
+while `verify` was green and all six part sheets were clean: the masts were passing straight
+through the canvas of six sails, and every sail was self-shadowing into black ragged patches.
+Neither was visible at review size. Both were unmissable the first time a frame was rendered
+at 1920.
+
+```bash
+node harness/capture.mjs <world> --hero        # one frame, 1920×1080, not in any sheet
+```
+
+**Look at one full-size frame before you claim anything.** A thumbnail can tell you which of two
+frames is better; it cannot tell you whether either one is finished.
+
 ## Do not loop on screenshots
 
 Re-render when a source change altered visible geometry, or to confirm one specific finding.

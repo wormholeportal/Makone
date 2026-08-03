@@ -26,7 +26,13 @@ const partsDir = path.join(ROOT, 'worlds', world, 'parts');
 const only = opt('--part', null)?.replace(/\.js$/, '');
 const views = opt('--views', 'iso,isoback,top,front').split(',');
 const [width, height] = opt('--size', '900x600').split('x').map(Number);
-const ref = opt('--ref', null);
+// resolved against the world first, so `--ref refs/gull.jpg` finds worlds/<world>/refs/gull.jpg
+let ref = opt('--ref', null);
+if (ref && !(await fs.stat(ref).catch(() => null))) {
+  const inWorld = path.join(ROOT, 'worlds', world, ref);
+  if (await fs.stat(inWorld).catch(() => null)) ref = inWorld;
+  else { console.error(`--ref: no such file "${ref}" (try worlds/${world}/refs/...)`); process.exit(1); }
+}
 
 const files = (await fs.readdir(partsDir).catch(() => {
   console.error(`no parts dir: worlds/${world}/parts/ — a part is a pure build(params) -> Object3D (D7)`);

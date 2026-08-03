@@ -188,6 +188,83 @@ That reproduces the old appearance exactly, for one scene, without poisoning the
 global pipeline. New worlds must NOT copy the shim — author true hex instead.
 And always A/B against a reference render; never port colors by theory alone.
 
+### E10. A hand-built index buffer faces the wrong way half the time
+
+Any mesh you index yourself — a terrain grid, a ribbon, a lofted hull — has a
+50% chance of facing away from you, and **every gate stays green when it does**.
+Back-face culling makes it invisible, so: no console error, contract complete,
+budget fine, `luma` fine (the sky and fog fill the frame), and the capture looks
+like a hazy scene rather than an empty one.
+
+`gorge` built a 2.9 km canyon that was invisible for five review rounds. The
+tell that broke it was not a screenshot — it was a raycast returning `null`
+everywhere the ground should have been.
+
+```js
+// rows advance along -Z, columns along +X:
+idx.push(a, c, b, b, c, d)   // ❌ normal is -Y. Invisible from above.
+idx.push(a, b, c, b, d, c)   // ✅
+```
+
+Check it the moment the mesh exists, in one of two ways — both take a minute
+and neither depends on your eyes:
+
+```js
+// 1. does a ray from above hit it at all?
+raycaster.set(new THREE.Vector3(x, 500, z), new THREE.Vector3(0, -1, 0));
+console.log(raycaster.intersectObject(mesh).length);       // 0 = wrong winding
+// 2. or just look at the first normal after computeVertexNormals()
+console.log(mesh.geometry.attributes.normal.getY(0));      // < 0 = wrong winding
+```
+
+**Symptom to remember**: "the world looks empty / washed out and I cannot find
+the geometry" is a winding bug far more often than it is a lighting bug.
+
+### E11. A world's own autopilot cannot validate its controls
+
+`bot-drivable ≠ player-tested`, and the gap is not a small one.
+
+`gorge` shipped a build where `D` turned the aircraft **left**. It survived every
+check because the only thing that ever flew it was the autopilot inside
+`main.js`, and that autopilot wrote the internal input struct directly using the
+same inverted sign. Two mistakes that cancel, one player who cannot steer.
+
+Underneath it was a second bug of the same family: `act()` set the input struct
+and `readKeys()` overwrote it on the very next frame, so the entire playable
+contract was implemented, reported `interactive: true`, and was **completely
+inert**. Both are invisible from inside.
+
+The rule: **the thing that drives a playable world must live outside it and use
+only the published contract** — `observe()` describes, `act()` commands, and a
+loop closed between the two is the only thing that proves they agree. That is
+what `worlds/<name>/pilot.js` is for, and why it may not import from the world.
+
+```bash
+node harness/botplay.mjs <name>     # flies the whole course through pilot.js
+```
+
+`verify` runs three seconds of it and warns when a playable world has no pilot;
+a wrong control convention takes a corner to appear, so it needs the full run.
+Corollary for any world where both a bot and a human write one input struct:
+decide which wins, in code, on purpose (`gorge` gates the keyboard read behind a
+`botUntil` timestamp).
+
+### E12. A form authored below the mesh's sampling rate does not exist
+
+If a feature is not at least ~3 samples across, it is not in the picture no
+matter how correct the maths is. `gorge` spent four rounds on sandstone ledges
+that were exactly one quad tall: the terracing function was right, the strata
+were right, and the wall rendered perfectly smooth.
+
+Before authoring a form, divide: **feature size ÷ quad size**. Under 3, you have
+two honest choices — make the feature bigger, or spend the vertices where it
+goes. Do not tune it; it cannot appear.
+
+The same arithmetic applies to textures (a 4-pixel feature in a 256² map is
+noise, not detail) and to the reverse case: `gorge`'s first rock map put its
+top octave on a 4-texel span and the whole canyon shimmered like television
+static from 400 m away.
+
 ---
 
 ## Game design axioms (already enforced via workflow)
@@ -235,13 +312,24 @@ And always A/B against a reference render; never port colors by theory alone.
    design scratchpad inside the world's directory is useful but optional — there
    is no audit gate. The real check is `harness/capture.mjs`: build both halves, look
    at the frame, fix the worst thing, repeat until it looks alive AND plays well.
-2. **Before extracting to lib**: count how many existing scenes have the same
+2. **Before judging anything that exists outside this repo**: put a reference in
+   the frame. **Memory is not a reference.** If the subject is a real thing — an
+   animal, a machine, a place, a light — your idea of it is smooth, symmetrical
+   and missing the two features that make it recognisable, and every iteration
+   against it optimises a target that does not exist. `capture --ref` and
+   `inspect --ref` put a photograph in the same sheet as your frames; drop the
+   images in `worlds/<name>/refs/`, which is git-ignored, so a reference can
+   never quietly become an asset (D4 still holds: copy the form, never the
+   pixels). This is scar tissue from a bird that went through six honest
+   review rounds and came out generic, because every round was scored against
+   the same wrong memory.
+3. **Before extracting to lib**: count how many existing scenes have the same
    pattern. **Three or more** = extract. Two = wait.
-3. **Before invoking an unfamiliar primitive**: `grep -rn "new <Name>" worlds/`
+4. **Before invoking an unfamiliar primitive**: `grep -rn "new <Name>" worlds/`
    to see how others use it.
-4. **After every code change visible in browser**: `node harness/capture.mjs
+5. **After every code change visible in browser**: `node harness/capture.mjs
    <world>` → look at the frames (plus `verify.mjs` for console/contract/budget).
-5. **When a bug shows up**: ask "is this a new instance of an old axiom?"
+6. **When a bug shows up**: ask "is this a new instance of an old axiom?"
    before writing a one-off fix. If yes, the fix is "apply axiom E_N".
    If no, you may have found a new axiom — write it down.
 
@@ -276,4 +364,7 @@ patterns**, distilled from real mistakes.
 | Bullets never spawn but enemies fire fine | E1 → Cooldown API mismatch |
 | First-person camera spins 90° on every move | E8 → snap-turn ≠ rotating cam |
 | Scene ported from an older three.js renders dark / oversaturated | E9 → colour shim + A/B vs reference |
+| World looks "empty / hazy", raycasts hit nothing, every gate green | E10 → index winding |
+| Controls feel wrong, or `act()` seems to do nothing | E11 → drive it from outside, `botplay` |
+| A form is mathematically there and invisible in the render | E12 → feature size ÷ quad size |
 | New game feels like a "tech demo" not a game | Game design Step 0 fail — re-read fantasy-test.md |

@@ -93,6 +93,15 @@ try {
   //   dark   — how much of it is crushed to unreadable black?
   //   bright — is there a real highlight anywhere? A dark world is allowed to be dark, but a
   //            dark world with no bright accent is mud, and that is the case worth catching.
+  //
+  // ...and two more about COLOUR, because value is only half of "is this frame any good" and it
+  // was the half with a number on it. A red canyon under a warm sun measured median 0.67, zero
+  // crushed pixels and a clean `natural` pass while being one single brown from floor to rim;
+  // five review rounds went by arguing about brightness. `sat` and `spread` are the other axis:
+  //   sat    — median saturation. How much colour is in the frame at all.
+  //   spread — the share of that colour NOT in its busiest 30° hue sector. Near zero is a
+  //            monochrome. Facts, not gates: a monochrome can be the whole point (fog, snow,
+  //            a foundry), and only the author knows whether it was chosen or drifted into.
   window.__luma = (() => {
     const N = 96;
     const buf = document.createElement('canvas');
@@ -103,19 +112,41 @@ try {
       ctx.drawImage(world.getCanvas(), 0, 0, N, N);
       const d = ctx.getImageData(0, 0, N, N).data;
       const v = new Float32Array(N * N);
-      let dark = 0, bright = 0;
+      const s = new Float32Array(N * N);
+      const hue = new Float64Array(12);        // 30° buckets, weighted by saturation
+      let dark = 0, bright = 0, hueTotal = 0;
       for (let i = 0, k = 0; i < d.length; i += 4, k++) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
         // Rec. 709 relative luminance on the sRGB values as displayed
-        const y = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+        const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
         v[k] = y;
         if (y < 0.05) dark++;
         if (y > 0.55) bright++;
+
+        // HSV saturation and hue. Grey and near-black pixels carry no reliable hue, so they
+        // are counted for saturation but excluded from the hue histogram — otherwise a sky
+        // full of pale haze votes for whatever hue its rounding error happens to land on.
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        const sat = mx === 0 ? 0 : (mx - mn) / mx;
+        s[k] = sat;
+        if (sat < 0.15 || mx < 16) continue;
+        let h;
+        if (mx === r) h = ((g - b) / (mx - mn) + 6) % 6;
+        else if (mx === g) h = (b - r) / (mx - mn) + 2;
+        else h = (r - g) / (mx - mn) + 4;
+        hue[Math.min(11, Math.floor(h * 2))] += sat;
+        hueTotal += sat;
       }
-      v.sort();
-      const q = (f) => v[Math.min(v.length - 1, Math.floor(f * v.length))];
+      v.sort(); s.sort();
+      const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+      // spread = the share of the frame's colour that is NOT in its single busiest hue sector.
+      // Near zero means every coloured pixel in the picture is the same hue — the measurable
+      // form of "this is one brown", which `luma` cannot see and which passes every key.
+      const dominant = hueTotal > 0 ? Math.max(...hue) / hueTotal : 0;
       return {
-        median: q(0.5), p95: q(0.95),
+        median: q(v, 0.5), p95: q(v, 0.95),
         dark: dark / (N * N), bright: bright / (N * N),
+        sat: q(s, 0.5), spread: hueTotal > 0 ? 1 - dominant : 0,
       };
     };
   })();

@@ -10,7 +10,12 @@
 // Reports (facts, not gates): the probed capabilities and `animated`. Nothing is declared
 // in world.json any more (D6), so nothing here can contradict a declaration; these are
 // measurements for the author to read against their own intent.
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { openWorld, step, worldNameFromArg } from './lib.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Share of the frame that has to change over 6 seconds to call a world *visibly* animated.
  *  Calibrated on the worlds in this repo (see the table in docs/architecture.md D6).
@@ -71,12 +76,51 @@ const luma = {
   dark: Number(mean('dark').toFixed(3)),
   bright: Number(Math.max(...shots.map((s) => s.bright)).toFixed(3)),
 };
+// The other axis. `luma` says where the pixels sit; `chroma` says whether there is more than one
+// colour among them — see play.html's probe for why this exists. Facts, never gates.
+const chroma = {
+  sat: Number(mean('sat').toFixed(3)),
+  spread: Number(mean('spread').toFixed(3)),
+};
 
 // A world that implements a timeline claims time is an addressable coordinate. Check it.
 let timelineMoves = null;
 if (caps.timeline) {
   await page.evaluate(() => { window.__world.seekTo(0); window.__motion(); window.__world.seekTo(1); });
   timelineMoves = await page.evaluate(() => window.__motion());
+}
+
+// And a world that implements `act` claims to be PLAYABLE. That claim used to be a `typeof` and
+// nothing else, which is how `gorge` shipped a build where every command handed to `act()` was
+// overwritten by the keyboard read on the next frame: the whole playable contract implemented,
+// reported green, and completely inert.
+//
+// Three seconds through the world's own `worlds/<name>/pilot.js` is enough to catch that, and a
+// missing pilot is enough to catch "nobody has ever driven this". It is NOT enough to catch a
+// wrong control convention — an inverted yaw sign takes a corner to show up — so this warns you
+// to go and run `botplay`, which flies the whole course. Cheap check here, real one there.
+let drive = null;
+const driveWarnings = [];
+if (caps.interactive) {
+  const hasPilot = await fs.stat(path.join(ROOT, 'worlds', name, 'pilot.js')).then(() => true, () => false);
+  if (!hasPilot) {
+    driveWarnings.push(`implements act() but has no worlds/${name}/pilot.js — the playable `
+      + 'contract has never been exercised (harness/botplay.mjs)');
+  } else {
+    drive = await page.evaluate(async (n) => {
+      const pilot = (await import(`/worlds/${n}/pilot.js`)).default;
+      const w = window.__world;
+      const first = JSON.stringify(w.getState());
+      let acted = 0, moved = false;
+      for (let i = 0; i < 90; i++) {
+        const cmd = pilot(w.observe(), w.getState(), i / 30);
+        if (cmd) { w.act(cmd); acted++; }
+        w.renderFrame(1 / 30);
+        if (!moved && JSON.stringify(w.getState()) !== first) moved = true;
+      }
+      return { acted, moved };
+    }, name).catch((err) => ({ error: String(err) }));
+  }
 }
 
 // Budget is measured by WALKING THE SCENE, not by reading `renderer.info`.
@@ -121,10 +165,32 @@ const info = await page.evaluate(() => {
         say(o, `material.color (#${m.color.getHexString()}) MULTIPLIES instanceColor — tinting `
           + 'both crushes the result. Let the instances carry the colour and keep the material white.');
       }
-      if (o.isInstancedMesh && m.side === 2 /* DoubleSide */) {
-        say(o, 'DoubleSide flips the normal on back faces. If this geometry carries authored '
-          + 'normals (e.g. grass blades tilted skyward), half of them end up pointing at the '
-          + 'ground. Author the back faces into the geometry and use FrontSide instead.');
+      // DoubleSide alone is fine — a petal disc wants it. The bug is DoubleSide over
+      // AUTHORED normals (grass blades whose normals are tilted skyward rather than
+      // along the surface): back faces get those normals inverted and go black. Detect
+      // it by comparing the first face's geometric normal against its vertex normals —
+      // they only disagree when someone authored them by hand.
+      if (m.side === 2 /* DoubleSide */ && g?.attributes.normal && g.attributes.position.count >= 3) {
+        const P = g.attributes.position, N = g.attributes.normal;
+        const i0 = g.index ? g.index.getX(0) : 0;
+        const i1 = g.index ? g.index.getX(1) : 1;
+        const i2 = g.index ? g.index.getX(2) : 2;
+        const at = (A, i) => [A.getX(i), A.getY(i), A.getZ(i)];
+        const [ax, ay, az] = at(P, i0), [bx, by, bz] = at(P, i1), [cx, cy, cz] = at(P, i2);
+        const ux = bx - ax, uy = by - ay, uz = bz - az;
+        const vx = cx - ax, vy = cy - ay, vz = cz - az;
+        let fx = uy * vz - uz * vy, fy = uz * vx - ux * vz, fz = ux * vy - uy * vx;
+        const fl = Math.hypot(fx, fy, fz);
+        if (fl > 1e-9) {
+          fx /= fl; fy /= fl; fz /= fl;
+          const [nx, ny, nz] = at(N, i0);
+          if (Math.abs(fx * nx + fy * ny + fz * nz) < 0.8) {
+            say(o, 'DoubleSide over authored normals: this geometry\'s vertex normals do not '
+              + 'match its surface (deliberately, e.g. grass blades tilted skyward), and '
+              + 'DoubleSide inverts them on back faces — so half of them point at the ground '
+              + 'and render black. Author the back faces into the geometry and use FrontSide.');
+          }
+        }
       }
       if (m.map && m.map.colorSpace !== 'srgb') {
         say(o, 'material.map is a colour texture but its colorSpace is not SRGBColorSpace — '
@@ -196,20 +262,26 @@ if (problems.length === 0 && !process.argv.includes('--no-export')) {
   bundle = (await exportWorld({ path: name })).trim();
 }
 
+if (drive?.error) problems.push(`pilot.js threw: ${drive.error}`);
+else if (drive && drive.acted > 0 && !drive.moved)
+  problems.push('act() was called and getState() never changed — the playable contract is inert');
+
 const { audit, ...facts } = info;
 console.log(JSON.stringify({
   world: name,
   ...caps,
   animated: motion > MOTION,
+  ...(caps.interactive ? { piloted: !!drive } : {}),
   motion: Number(motion.toFixed(4)),
   frameMs,
   luma,
+  chroma,
   ...facts,
   pass: problems.length === 0,
   problems,
   // Heuristics, not gates: each one is a real trap this repo has hit, but a world is allowed
   // to do any of them on purpose. They warn, they never fail a build.
-  warnings: audit,
+  warnings: [...audit, ...driveWarnings],
   bundle,
 }, null, 2));
 process.exit(problems.length ? 1 : 0);

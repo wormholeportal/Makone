@@ -14,6 +14,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const BG = 0xb4b9c1;          // neutral mid-grey: reads form without flattering it
 const GROUND = 0x969ca5;
@@ -94,14 +95,24 @@ export function createStudio(container, root, opts = {}) {
   scene.add(ground, grid);
 
   // ---- graduated staff: 0.1 m bands, so absolute scale is in the picture ----
+  //
+  // TWO meshes, not one per band. The band count scales with the SUBJECT: a 1 m object gets a
+  // dozen and a 56 m ship gets 639, and 639 objects for a ruler is both wasteful and actively
+  // misleading — `verify` walks the scene graph to count draw calls, so the harness's own tape
+  // measure was being charged to the world's budget and failing it. The rig must never be the
+  // reason a work does not fit.
   const staff = new THREE.Group();
   const staffH = Math.max(1.0, Math.ceil((size.y * 1.15) / 0.1) * 0.1);
-  const bandGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.1, 12);   // shared (E4)
   const bandMats = [new THREE.MeshStandardMaterial({ color: STAFF_A, roughness: 0.7 }),
                     new THREE.MeshStandardMaterial({ color: STAFF_B, roughness: 0.7 })];
+  const halves = [[], []];
   for (let i = 0; i < Math.round(staffH / 0.1); i++) {
-    const band = new THREE.Mesh(bandGeo, bandMats[i % 2]);
-    band.position.y = i * 0.1 + 0.05;
+    halves[i % 2].push(new THREE.CylinderGeometry(0.018, 0.018, 0.1, 12)
+      .translate(0, i * 0.1 + 0.05, 0));
+  }
+  for (let i = 0; i < 2; i++) {
+    if (!halves[i].length) continue;
+    const band = new THREE.Mesh(mergeGeometries(halves[i], false), bandMats[i]);
     band.castShadow = true;
     staff.add(band);
   }

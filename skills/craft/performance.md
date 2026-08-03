@@ -42,6 +42,21 @@ For first playable:
 
 Exceed a budget only if the design doc names the player-facing reason.
 
+> **What `verify` actually counts.** It walks the scene graph and sums every
+> visible mesh (an `InstancedMesh` counts once as a draw call, `count` times as
+> triangles). That is what you *built* — an upper bound — not what the frustum
+> happened to draw on one frame. It reads high compared to a per-frame number,
+> and that is the point: a budget you can pass by pointing the camera at the sky
+> is not a budget. It also reports `frameMs`, a median over 25 GPU-synced frames.
+> Headless renders in software, so the absolute value says nothing about a real
+> GPU — but it is measured identically for every world, so a world that suddenly
+> costs 5× more is genuinely 5× heavier.
+>
+> This gate previously read `renderer.info`, which is reset per `renderer.render()`
+> call — so any world using an `EffectComposer` reported only its final full-screen
+> pass. A 614k-triangle world measured as `{triangles: 1, drawCalls: 1}` and passed
+> a 900k budget in silence.
+
 ## Visual Hierarchy Order
 
 1. Player

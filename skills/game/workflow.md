@@ -30,6 +30,16 @@ don't reduce them to rubber-stamps — bring a real proposal and a real question
   a painting. Ask explicitly; humans rarely volunteer them. Then shoot your own
   world with `capture` and put the two side by side. A pasted screenshot corrects
   a wrong art direction faster than any amount of description.
+  **A reference is a quality BAR, not a template.** What you take from it is the
+  standard — typographic discipline, light contrast, material precision,
+  information hierarchy — and what you owe back is your own version of it.
+  `gorge` came back from this fork having reproduced a racing game's actual
+  layout (card list, paired brand colours, corner dials) and the human's word
+  for that was *抄袭*. Write down three or four things the reference does well,
+  then reach them with a different design language. The rebuild went the other
+  way on every axis — hairlines instead of cards, one accent, one upright
+  monospace, a course strip instead of dials — and read as considered instead of
+  borrowed.
 - **Fork 3 — the ending (before you call it done).** The last 10 seconds are
   where a feeling either lands or evaporates. Show the human the ending beat
   (capture it, or describe it) and ask one question: *did it land?* If the
@@ -91,6 +101,25 @@ with `capture`.
 
 A `<game>.design.md` next to your code holds the feeling / verb / frame /
 ending from Step 0. It's a compass, not a deliverable to be graded.
+
+## 3b. Write the pilot, and let it fly the thing
+
+The moment `act`/`observe`/`getState` exist, write `worlds/<name>/pilot.js` and
+run `node harness/botplay.mjs <name>`. It is ten lines: read `observe()`, aim,
+return a command. **It may not import from your world** — that restriction is
+the entire value (docs/principles.md E11).
+
+This is not a test of the game's difficulty, it is a test of the interface, and
+it is the cheapest bug-finder in the repo. `gorge` was flown for an entire build
+by its own internal autopilot and shipped two invisible bugs: `act()` being
+overwritten by the keyboard read on the next frame (the playable contract
+implemented and completely inert), and an inverted yaw sign that made `D` turn
+left. The first pilot run found both, and the second one answered a design
+question nobody had asked yet — a clean run finished with eighty seconds still
+on the clock, so the whole time economy was retuned.
+
+A pilot that finishes the course also tells you the game is *completable*, which
+is otherwise something you only ever assume.
 
 ## 4. Capture, look, fix — close the gap to the feeling
 

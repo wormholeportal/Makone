@@ -35,6 +35,13 @@ arm reaching over it; the moulding profile is not on that list.
 Split by **how it is made and how it moves**, never by what your eye groups together.
 See `parts.md`.
 
+Put the reference in `worlds/<name>/refs/` in the same sitting (git-ignored — a reference can
+never become an asset). Name the identity-defining features **off the photograph**, not off your
+idea of the thing: what your memory hands you is a generic member of the category, and the two
+features that make it *that* object are exactly the ones it drops. From here on, `inspect --ref`
+and `capture --ref` put it in the same sheet as your frames — see `review.md`, and
+docs/principles.md workflow 2 for why this is scar tissue rather than advice.
+
 ### 2. Do the arithmetic before any geometry
 
 Write `params.js` first, with named values in metres, and **check the relationships numerically**.

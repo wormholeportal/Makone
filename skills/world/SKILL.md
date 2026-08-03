@@ -27,6 +27,13 @@ Only mass out forms: ground/water surface, hero, two or three supporting masses,
 `capture --shots 4` to check composition: is the hero at the visual centre? Does the silhouette hold? Enough negative space?
 **If composition doesn't work, don't go to the next step** — every bit of polish after this can't save bad composition.
 
+**If the subject is a real thing, get a reference into the frame before you judge the blocking**
+(docs/principles.md, workflow 2). Drop photographs in `worlds/<name>/refs/` — git-ignored, so they
+can never become assets — and shoot `capture --shots 4 --ref refs/x.jpg`: the reference lands in
+the same sheet as your frames. Your memory of an animal, a machine or a place is smooth,
+symmetrical and missing the two features that make it recognisable, and blocking judged against it
+is a target that does not exist. Copy the **form**, never the pixels (D4).
+
 ### 2. Construction (form language)
 
 Give each mass real form. Procedural geometry + CSG (`skills/craft/solid.md`) + shared geometry (docs/principles.md E4).
@@ -61,6 +68,24 @@ subject needs it or whether you are hiding.
 picture contradicts the key you declared — a `natural` world that is 60% black, or a `low` world
 with no highlight anywhere. Declared intent, measured result, same contract as `budget`.
 
+**Then read `chroma`, because value is only half the frame and it was the half with a number on
+it.** `sat` is median saturation; `spread` is the share of the frame's colour that is *not* in its
+busiest 30° hue sector. A canyon once measured `median 0.67`, zero crushed pixels and a clean
+`natural` pass while being one single brown from floor to rim — five review rounds went by arguing
+about brightness. Rough reading, calibrated on this repo:
+
+| `spread` | what it means | measured |
+|---|---|---|
+| < 0.15 | a monochrome | a red gorge with nothing else in it — 0.09 |
+| 0.15–0.35 | one hue family plus an accent | `abyss` — 0.22 |
+| > 0.5 | genuinely polychrome | `koi` 0.57 · `aurora` 0.64 |
+
+These are **facts, not gates**. A monochrome can be the entire point — fog, snow, a foundry, the
+deep sea. The question the number asks is only ever *did you choose this, or did you drift into
+it?* The cheapest fix when the answer is "drift" is rarely a filter: it is putting one genuinely
+different hue in the world (`gorge` got its rock back by planting a green line of cottonwoods down
+the wash, not by regrading anything).
+
 Then pin down the colour language (3-5 key colours as consts at the file top) and place the lights.
 Attend both directions: key light tells the story, fill light keeps the backlit side readable
 (dead black = lazy, dark ≠ mood). Palette families: `skills/craft/palette-families.md`.
@@ -76,7 +101,9 @@ All animation via `renderFrame(dt)`, no independent rAF.
 
 ```bash
 node harness/capture.mjs <name> --shots 4
-node harness/capture.mjs <name> --shots 4 --ref <last-run>.png   # optional: before/after, one frame
+node harness/capture.mjs <name> --shots 4 --ref refs/x.jpg       # vs the real thing (step 1)
+node harness/capture.mjs <name> --shots 4 --ref <last-run>.png   # vs your own last frame: regression
+node harness/capture.mjs <name> --hero     # NOT optional — one frame at 1920×1080, and look at it
 node harness/verify.mjs <name>
 node harness/catalog.mjs                  # only if world.json changed
 node harness/export.mjs <name>            # worlds/<name>/<name>.html — one file, opens by double-click
@@ -85,6 +112,12 @@ node harness/export.mjs <name>            # worlds/<name>/<name>.html — one fi
 ```
 
 Frame by frame against the brief: which frame is weakest? **Fix the weakest frame, re-capture, until no obvious weak frames.**
+
+**A contact sheet compares; it does not verify.** Thumbnails tell you which of two frames is
+better and hide whether either is finished. The clipper reached this step with every gate green
+and six clean part sheets while its masts were passing through the canvas of six sails — both
+that and a whole-ship shadow artifact were invisible at review size and unmissable at 1920.
+Shoot the `--hero` frame and actually look at it before you claim anything.
 verify must pass (contract/console/budget).
 
 **Export before you call it done.** A passing `verify` now writes the bundle itself, because

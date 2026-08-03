@@ -14,9 +14,11 @@ Pull one page when you hit that problem. Don't read the folder.
 |---|---|
 | `solid.md` | Fillets, shells, holes, booleans — Manifold CSG via `runtime/solid.js` |
 | `forms.md` | Knurls, sprockets, tubes, shells, engraved scales — `runtime/forms.js` |
+| `procedural-materials.md` | **Everything looks like coloured plastic?** Sky light probe + noise → albedo/roughness/normal. Do this before you touch a light |
 | `actors.md` | Putting people in a world — `runtime/actors.js`, routines, poses, navigation |
 | `animation.md` | Motion that reads as alive: the 12 principles, applied to code |
 | `silhouette.md` | Shapes you can recognise as black cut-outs |
+| `hairlines.md` | Spokes, wires, rigging — geometry thinner than a pixel, and thin surfaces |
 | `contrast-hierarchy.md` | Making the eye land on the right thing first |
 | `color-grammar.md` | Colour that means something instead of decorating |
 | `palette-families.md` | Choosing a palette family and staying inside it |

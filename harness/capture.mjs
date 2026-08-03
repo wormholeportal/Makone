@@ -50,11 +50,19 @@ const [width, height] = opt('--size', hero ? '1920x1080' : '1280x720').split('x'
 // code that made them while you review. They are review artifacts, not history — look, then
 // keep them out of the commit; the ones that matter belong in the pull request.
 const outDir = opt('--out', `worlds/${name.split('/').pop()}/shots`);
-const ref = opt('--ref', null);
+// A reference is resolved against the world first, so the workflow's own convention —
+// `worlds/<name>/refs/` (git-ignored, see docs/principles.md workflow 2) — can be written the
+// short way: `--ref refs/gull.jpg`. Anything else is taken as an ordinary path.
+let ref = opt('--ref', null);
+if (ref && !(await fs.stat(ref).catch(() => null))) {
+  const inWorld = path.join(ROOT, 'worlds', name, ref);
+  if (await fs.stat(inWorld).catch(() => null)) ref = inWorld;
+}
 const wantSheet = !!ref || args.includes('--sheet');
 
 if (ref && !(await fs.stat(ref).catch(() => null))) {
-  console.error(`--ref: no such file "${ref}" (a reference photo, a design frame, or an earlier capture)`);
+  console.error(`--ref: no such file "${ref}" — a reference photo (worlds/${name}/refs/...), `
+    + 'a design frame, or an earlier capture');
   process.exit(1);
 }
 
@@ -74,8 +82,9 @@ const saved = [];
 // A world with a timeline gets sampled along it; anything else gets a couple of simulated
 // seconds first, so a living world is never caught on frame zero. Explicit flags always win.
 const caps = await page.evaluate(() => ({ timeline: typeof window.__world.seekTo === 'function' }));
-const ats = atsFlag ? atsFlag.split(',').map(Number)
-  : (caps.timeline && !shotsFlag ? [0, 0.5, 0.9] : null);
+const ats = hero ? null
+  : atsFlag ? atsFlag.split(',').map(Number)
+    : (caps.timeline && !shotsFlag ? [0, 0.5, 0.9] : null);
 const shots = Number(shotsFlag ?? 1);
 const after = Number(afterFlag ?? (ats ? 0 : 2));
 
@@ -85,7 +94,15 @@ async function shoot(tag) {
   saved.push({ label: tag, file });
 }
 
-if (ats) {
+if (hero) {
+  // The world's own camera, held, at full size. No orbit and no timeline sampling: a hero frame
+  // is the shot the author framed, rendered big enough to be judged. An --arc or --at is a
+  // different question and gets a different run.
+  if (after > 0) await step(page, after);
+  const az = opt('--arc', null)?.split(',').map(Number)?.[0];
+  if (az !== undefined) await page.evaluate((a) => window.__orbit(a), az);
+  await shoot('hero');
+} else if (ats) {
   for (const t of ats) {
     await page.evaluate((tt) => { window.__world.seekTo(tt); window.__world.renderFrame(0); }, t);
     await shoot(`t${t}`);

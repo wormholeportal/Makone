@@ -57,12 +57,27 @@ Flat structure, one world per directory; the category is a property inside `worl
 node harness/serve.mjs                      # local static server (open http://localhost:5180/ for the gallery)
 node harness/create.mjs <name> --type scene --brief "..."
 node harness/capture.mjs <name> --shots 4   # orbit shots; --arc a0,a1 for walled scenes; --at 0,0.5,0.9 for timelines; --after s to simulate first
-node harness/verify.mjs <name>              # console errors / contract / budget, JSON output (module format only)
+node harness/capture.mjs <name> --hero      # ONE frame at 1920×1080 — the look-before-you-call-it-done shot
+node harness/verify.mjs <name>              # console errors / contract / budget / frameMs, JSON output (module format only)
                                             #   a PASS also refreshes worlds/<name>/<name>.html (--no-export to skip)
+                                            #   read `warnings`: material traps that render as "too dark" and
+                                            #   look like lighting bugs (skills/three/instancing-traps.md)
+                                            #   read `chroma`: sat + hue spread. spread < 0.15 is a monochrome —
+                                            #   `luma` cannot see that, and it passes every key (skills/world step 3)
+node harness/botplay.mjs <name>             # playable worlds only: fly the whole thing through worlds/<name>/pilot.js
+                                            #   the pilot lives OUTSIDE the world and uses only observe/getState/act.
+                                            #   An autopilot inside main.js proves nothing (docs/principles.md E11)
 node harness/export.mjs --check             # gate: every module world has a single-file bundle
 node harness/catalog.mjs                    # regenerate index.json after editing world.json (--check for a gate)
 ```
 
 **Never reference a file that does not exist.** The scripts in `harness/` and the skills in
-`skills/` are the complete set; if a workflow seems to call for something else, check that it
-is there before you write it into a doc, a comment or an instruction to the user.
+`skills/` are the complete *committed* set; if a workflow seems to call for something else, check
+that it is there before you write it into a doc, a comment or an instruction to the user.
+
+**One exception, and it exists because it cost a session:** the covers next to every world
+(`cover.png` / `cover.gif` / `cover.anim.webp`) are NOT made by anything in `harness/`. They come
+from an uncommitted local script, `.local/cover.mjs` — one run, one camera, one set of frames,
+three encodes. `.local/` is gitignored, so it is missing from a fresh clone and invisible to
+`ls harness/` and to `git log`. **Look there before you write a cover script**; one was written
+from scratch here, and it produced a cover that did not match the gallery it was going into.

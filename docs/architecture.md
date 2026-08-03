@@ -126,13 +126,22 @@ Machine-read (health report, authors never write these):
 | `timeline` | `typeof world.seekTo === 'function'` | capture shot-selection |
 | `animated` | **measured**: fraction of changed pixels after 6 s of `step` > 0.5% | honest health check |
 | `luma` | **measured**: median / crushed / peak-bright of the rendered frame | key gate |
-| `tris` / `drawCalls` | `renderer.info` | budget gate |
+| `tris` / `drawCalls` | **measured**: the scene graph is walked and summed | budget gate |
+| `frameMs` | **measured**: median of 25 frames, GPU-synced via `readPixels` | comparative cost |
 
 **`key` is the second declared-intent-plus-measurement pair**, and it exists because of a
 demonstrated drift. Thirteen worlds were built in one run; the draw-call budget — a number —
 caught five mistakes, the timeline check — a number — caught six. Darkness had no number, and ten
 scenes in a row came out night, dusk, underwater or underground with nothing to say so. Every bar
 that held in this repo held because it was measured.
+
+> The budget gate itself later proved that a measurement can also drift — into silence. It read
+> `renderer.info`, which is reset on every `renderer.render()` call, so a world rendering through
+> an `EffectComposer` reported only its last pass: a full-screen quad. `erdtree` — 181 meshes,
+> ~614k triangles — measured as `{triangles: 1, drawCalls: 1}` and passed a 900k budget without
+> comment. Four worlds were affected. The gate now walks the scene graph, which does not care how
+> a world chooses to render. **A number that can only ever pass is worse than no number**, because
+> it is also a claim that somebody checked.
 
 So `key` (`natural` · `low` · `high`) is declared like `budget`, and `verify` samples the frame
 three times over six seconds and reports `luma`:

@@ -7,8 +7,9 @@ All plain Node ESM; the only heavy dependency is Playwright (devDependency, need
 |---|---|---|
 | `serve.mjs` | Zero-dependency static server over the repo root (open / for the gallery) | `--port 5180` |
 | `create.mjs` | Scaffold `worlds/<name>/` and refresh the catalog | `--type scene\|game\|object`, `--brief "..."` |
-| `capture.mjs` | Headlessly load a world → screenshots for the agent to look at | `--shots N` orbit positions, `--arc a0,a1` limit the angle (walled scenes), `--at t1,t2` timeline positions (0..1), `--after s` simulate s seconds first, `--size WxH`, `--out dir` |
+| `capture.mjs` | Headlessly load a world → screenshots for the agent to look at | `--shots N` orbit positions, `--arc a0,a1` limit the angle (walled scenes), `--at t1,t2` timeline positions (0..1), `--after s` simulate s seconds first, `--size WxH`, `--out dir`, `--hero` one frame at 1920×1080 (a contact sheet compares; it does not verify) |
 | `verify.mjs` | Load + simulate 5 seconds: console errors, WorldModule contract, tris/drawCalls budget | Outputs JSON, exit 0 on pass |
+| `botplay.mjs` | Fly a playable world to a WIN through its own `worlds/<name>/pilot.js` | `--seconds N`, `--dt hz`. Exit 0 only if the pilot wins — losing is terminal too. The pilot may use `observe`/`getState`/`act` and nothing else — see docs/principles.md E11 |
 | `catalog.mjs` | Scan `worlds/*/world.json` → generate `worlds/index.json` | `--check` only validates staleness (CI gate) |
 | `smoke.mjs` | End-to-end self-check: create → catalog → verify → capture (both modes) → export, then deletes its throwaway world. **Run it after touching harness/ or runtime/** | 6/6 green, or the loop is broken |
 | `lib.mjs` | Shared internal module (start server + chromium + wait for ready + collect console) — **not a command**, hence no verb name | — |
