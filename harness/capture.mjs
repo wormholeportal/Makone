@@ -11,6 +11,10 @@
 //                                                     #   in world.json and every run picks it up.
 //   node harness/capture.mjs <name> --at 0,0.5,0.9    # override: seek these timeline positions (0..1)
 //   node harness/capture.mjs <name> --after 6         # override: simulate N seconds first
+//   node harness/capture.mjs <name> --play 62,250     # PLAY it first: drive the world through
+//                                                     #   worlds/<name>/pilot.js and shoot at each
+//                                                     #   of those simulated seconds. Combines with
+//                                                     #   --hero and --sheet. Defaults to 30 s.
 //   node harness/capture.mjs <name> --size 1280x720 --out <dir>
 //   node harness/capture.mjs <name> --ref ref.jpg     # comparison sheet: the reference sits in the
 //                                                     #   same frame as the shots. Point it at a photo,
@@ -19,6 +23,13 @@
 //                                                     #   is how a regression survives a review.
 //   node harness/capture.mjs <name> --sheet           # same sheet, no reference
 //   node harness/capture.mjs <name> --hero            # ONE frame at 1920×1080, not in any sheet
+//
+// --play exists because `--after N` simulates a world with nobody at the controls, and for a
+// GAME that is not a picture of the game — it is a picture of its first moment. Two of the
+// games in this repo have a complete visual record of four shots of their own title card,
+// which is what "shoot it and look" produces when the shooting cannot press a key. With a
+// pilot in the world's directory, the same command shoots the fire at dusk and the boss at
+// midnight instead (docs/principles.md E11 — the pilot is already required to be there).
 //
 // --hero exists because a contact sheet is a comparison tool and a bad verification tool, and
 // the difference is not obvious until it costs you. On the clipper every gate was green and all
@@ -32,7 +43,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openWorld, step, worldNameFromArg } from './lib.mjs';
+import { openWorld, step, drive, worldNameFromArg } from './lib.mjs';
 import { composeSheet } from './sheet.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -45,6 +56,18 @@ const afterFlag = opt('--after', null);
 // A hero frame defaults BIG. The whole point of it is the resolution, so making the caller
 // remember --size would defeat it on exactly the runs where it matters.
 const hero = args.includes('--hero');
+// `--play` takes an optional comma list of simulated seconds. It is read positionally rather
+// than through opt() because "--play" with nothing after it is the common case.
+const playIdx = args.indexOf('--play');
+const playing = playIdx > 0;
+const playAt = (() => {
+  if (!playing) return null;
+  const next = args[playIdx + 1];
+  const list = next && !next.startsWith('--')
+    ? next.split(',').map(Number).filter((n) => Number.isFinite(n) && n >= 0)
+    : [];
+  return (list.length ? list : [30]).sort((a, b) => a - b);
+})();
 const [width, height] = opt('--size', hero ? '1920x1080' : '1280x720').split('x').map(Number);
 // A world's shots land WITH the world (worlds/<name>/shots/), so the frames sit next to the
 // code that made them while you review. They are review artifacts, not history — look, then
@@ -82,7 +105,7 @@ const saved = [];
 // A world with a timeline gets sampled along it; anything else gets a couple of simulated
 // seconds first, so a living world is never caught on frame zero. Explicit flags always win.
 const caps = await page.evaluate(() => ({ timeline: typeof window.__world.seekTo === 'function' }));
-const ats = hero ? null
+const ats = hero || playing ? null
   : atsFlag ? atsFlag.split(',').map(Number)
     : (caps.timeline && !shotsFlag ? [0, 0.5, 0.9] : null);
 const shots = Number(shotsFlag ?? 1);
@@ -98,10 +121,17 @@ if (hero) {
   // The world's own camera, held, at full size. No orbit and no timeline sampling: a hero frame
   // is the shot the author framed, rendered big enough to be judged. An --arc or --at is a
   // different question and gets a different run.
-  if (after > 0) await step(page, after);
+  if (playing) await drive(page, name, playAt[0]);
+  else if (after > 0) await step(page, after);
   const az = opt('--arc', null)?.split(',').map(Number)?.[0];
   if (az !== undefined) await page.evaluate((a) => window.__orbit(a), az);
   await shoot('hero');
+} else if (playing) {
+  // one continuous run, shot as it passes each moment — not one run per frame
+  for (const t of playAt) {
+    await drive(page, name, t);
+    await shoot(`play-${t}`);
+  }
 } else if (ats) {
   for (const t of ats) {
     await page.evaluate((tt) => { window.__world.seekTo(tt); window.__world.renderFrame(0); }, t);

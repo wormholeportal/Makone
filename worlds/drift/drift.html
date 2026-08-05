@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- makone:src b86a0cee9490 -->
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -4159,7 +4160,7 @@ Tip: charge a drift BEFORE the corner, release at the apex \u2014 a good drift s
 
 You are now a legend of these tracks.`,buttons:[{label:"Play again (R)",onClick:()=>location.reload()}]}),i.appendChild(Ue.el)}Bt(0),Et(),J.start();let ir=!1;function go(Z){let m=Math.min(Z||0,.03333333333333333);if(tt.tick(m),x.tick(m),O.tick(m),Pt.mode==="countdown"){Pt.countdownT-=m;let H=Pt.countdownT,Y="";if(H>2.5?Y="3":H>1.5?Y="2":H>.5?Y="1":H>-.5?Y="GO!":(Pt.mode="racing",J.reset(),J.start()),bn.textContent=Y,Y){bn.style.opacity="1";let et=H>.5?(3.5-H)%1:.5+H*-1;bn.style.transform=`translate(-50%, -50%) scale(${1.5-et*.5})`}else bn.style.opacity="0"}else if(Pt.mode==="racing"||Pt.mode==="finished"){Pt.mode==="racing"&&J.tick(m),wt(yt,m);for(let H=1;H<Dt.length;H++)Ct(Dt[H],m);Xt();for(let H of Dt)H.group.position.copy(H.pos),H.group.rotation.y=H.facing;ft(m)}At(m),K.tick(m);let T=new I(-Math.sin(yt.facing),0,-Math.cos(yt.facing)),P=Math.abs(yt.vel.dot(T)),L=Math.round(P*3.6);sn.set(String(L).padStart(3,"0"));let D=Math.min(mt.laps,yt.lap+1);es.set(`LAP ${D} / ${mt.laps}`),fo.set(`#${Mt()}`),js.set(`${mt.name} (Stage ${vt+1})`),Sn.set(zl(J.elapsed));let V=Math.min(1,yt.driftT/E);Nn.style.width=`${V*100}%`,yt.boostT>0?Nn.style.background="linear-gradient(90deg, #ff8844, #ffee66)":Nn.style.background="linear-gradient(90deg, #44ddff, #ff8844)",s.render(r,a)}function _o(){let Z=i.clientWidth,m=i.clientHeight;a.aspect=Z/m,a.updateProjectionMatrix(),s.setSize(Z,m)}function xo(){ir||(ir=!0,window.removeEventListener("keydown",Lt),window.removeEventListener("keyup",Ft),x.dispose(),O.dispose(),r.traverse(Z=>{Z.geometry&&Z.geometry.dispose?.(),Z.material&&!Array.isArray(Z.material)&&Z.material.dispose?.()}),ge.dispose(),Ue&&Ue.dispose(),s.dispose(),s.domElement.parentNode===i&&i.removeChild(s.domElement))}return{getScene:()=>r,getCamera:()=>a,getRenderer:()=>s,getCanvas:()=>s.domElement,getOrbitControls:()=>null,renderFrame:go,resize:_o,dispose:xo}}function zl(i){let t=Math.floor(i/60),e=(i%60).toFixed(2);return`${String(t).padStart(2,"0")}:${String(e).padStart(5,"0")}`}window.__createWorld=kl;
 
-const meta = {"name":"drift","title":"Drift","type":"game","format":"module","entry":"main.js","cover":"cover.png","source":"OSS Makone games/ — needs the makone/game toolkit; archived here"};
+const meta = {"name":"drift","title":"Drift","type":"game","format":"module","entry":"main.js","cover":"cover.png","brief":"rear wheels out, holding the angle through a night circuit"};
 const stage = document.getElementById('stage');
 try {
   const world = await window.__createWorld(stage, meta);

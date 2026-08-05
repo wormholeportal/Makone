@@ -13,7 +13,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openWorld, step, worldNameFromArg } from './lib.mjs';
+import { openWorld, step, drive as playTo, worldNameFromArg } from './lib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -53,6 +53,7 @@ const LUMA = {
 };
 
 const name = worldNameFromArg(process.argv[2]);
+const record = JSON.parse(await fs.readFile(path.join(ROOT, 'worlds', name, 'world.json'), 'utf8'));
 const { page, errors, close } = await openWorld(name);
 
 const caps = await page.evaluate(() => ({
@@ -60,28 +61,61 @@ const caps = await page.evaluate(() => ({
   interactive: typeof window.__world.act === 'function',
 }));
 
-// Six seconds, sampled three times: one frame can be caught mid-flash (a lighthouse is dark for
-// 26 of every 30 seconds), so the median is averaged and the highlight is taken at its PEAK —
-// "does this world ever show you something bright" is the question, not "right now".
+/** One moment is three luma samples: a frame can be caught mid-flash (a lighthouse is dark for
+ *  26 of every 30 seconds), so the median is averaged and the highlight is taken at its PEAK —
+ *  "does this world ever show you something bright" is the question, not "right now". */
+async function sample(spacing) {
+  const shots = [];
+  for (let i = 0; i < 3; i++) {
+    if (i) await step(page, spacing);
+    shots.push(await page.evaluate(() => window.__luma()));
+  }
+  const mean = (k) => shots.reduce((a, s) => a + s[k], 0) / shots.length;
+  return {
+    luma: {
+      median: Number(mean('median').toFixed(3)),
+      dark: Number(mean('dark').toFixed(3)),
+      bright: Number(Math.max(...shots.map((s) => s.bright)).toFixed(3)),
+    },
+    // The other axis. `luma` says where the pixels sit; `chroma` says whether there is more than
+    // one colour among them — see play.html's probe for why. Facts, never gates.
+    chroma: {
+      sat: Number(mean('sat').toFixed(3)),
+      spread: Number(mean('spread').toFixed(3)),
+    },
+  };
+}
+
+// A world with a long cycle — a day, a tide, a season — was only ever measured over its first
+// six seconds, so the half of it that is most likely to be mud (the night) never reached the
+// gate at all. `world.json` can now name the moments that have to be judged, each carrying its
+// OWN key, because a game that is `natural` at noon really is `low` at midnight and one number
+// cannot be honest about both:
+//
+//     "verify": { "at": [ { "s": 4, "key": "natural", "name": "day" },
+//                         { "s": 62, "key": "low", "name": "night by the fire" } ] }
+//
+// Declared moments REPLACE the default — list the opening one explicitly if you still want it.
+// Reaching a late moment means playing the world, so this drives `pilot.js` when there is one:
+// a game left standing still until midnight is measuring its own death screen.
+const MOMENTS = (record.verify?.at || []).map((m, i) => (typeof m === 'number'
+  ? { s: m, name: `t${m}s` }
+  : { s: Number(m.s ?? m.at ?? 0), key: m.key, name: m.name || `t${m.s ?? m.at}s` }))
+  .sort((a, b) => a.s - b.s);
+
 await page.evaluate(() => window.__motion());          // baseline
-const shots = [];
-for (let i = 0; i < 3; i++) {
+const moments = [];
+if (MOMENTS.length) {
+  for (const m of MOMENTS) {
+    await playTo(page, name, m.s, { quiet: true });
+    moments.push({ ...m, ...(await sample(0.7)) });
+  }
+} else {
   await step(page, 2);
-  shots.push(await page.evaluate(() => window.__luma()));
+  moments.push({ s: 6, name: 'opening', ...(await sample(2)) });
 }
 const motion = await page.evaluate(() => window.__motion());
-const mean = (k) => shots.reduce((a, s) => a + s[k], 0) / shots.length;
-const luma = {
-  median: Number(mean('median').toFixed(3)),
-  dark: Number(mean('dark').toFixed(3)),
-  bright: Number(Math.max(...shots.map((s) => s.bright)).toFixed(3)),
-};
-// The other axis. `luma` says where the pixels sit; `chroma` says whether there is more than one
-// colour among them — see play.html's probe for why this exists. Facts, never gates.
-const chroma = {
-  sat: Number(mean('sat').toFixed(3)),
-  spread: Number(mean('spread').toFixed(3)),
-};
+const { luma, chroma } = moments[0];
 
 // A world that implements a timeline claims time is an addressable coordinate. Check it.
 let timelineMoves = null;
@@ -118,7 +152,8 @@ if (caps.interactive) {
         w.renderFrame(1 / 30);
         if (!moved && JSON.stringify(w.getState()) !== first) moved = true;
       }
-      return { acted, moved };
+      const st = w.getState();
+      return { acted, moved, terminal: !!(st.terminal ?? st.dead ?? st.won) };
     }, name).catch((err) => ({ error: String(err) }));
   }
 }
@@ -231,23 +266,34 @@ if (info.budget?.drawCalls && info.drawCalls > info.budget.drawCalls)
 if (timelineMoves !== null && timelineMoves < MOTION)
   problems.push(`timeline: seekTo(0) and seekTo(1) render the same frame (motion ${timelineMoves.toFixed(4)})`);
 
-// The key is a promise about the frame. Check it against the frame.
-const bar = LUMA[info.key];
-if (!bar) {
-  problems.push(`key "${info.key}" is not one of ${Object.keys(LUMA).join(' / ')}`);
-} else if (info.key === 'natural') {
-  if (luma.dark > bar.maxDark)
-    problems.push(`key "natural" but ${(luma.dark * 100).toFixed(0)}% of the frame is below 5% `
-      + `luminance (max ${bar.maxDark * 100}%) — raise the fill, cut the fog, or declare "low"`);
-  else if (luma.median < bar.minMedian)
-    problems.push(`key "natural" but the median pixel is ${luma.median.toFixed(3)} `
-      + `(min ${bar.minMedian}) — the whole range has collapsed into the bottom`);
-} else if (info.key === 'low' && luma.bright < bar.minBright) {
-  problems.push(`key "low" but nothing in the frame is bright (${(luma.bright * 100).toFixed(1)}% `
-    + `above 55% luminance, min ${bar.minBright * 100}%) — a dark world still needs a lit focal `
-    + 'subject, or it is mud rather than mood');
-} else if (info.key === 'high' && luma.median < bar.minMedian) {
-  problems.push(`key "high" but the median pixel is ${luma.median.toFixed(3)} (min ${bar.minMedian})`);
+// The key is a promise about the frame. Check it against the frame — once per declared moment,
+// against that moment's own key.
+function keyProblems(key, l, where) {
+  const at = where ? ` at "${where}"` : '';
+  const bar = LUMA[key];
+  if (!bar) return [`key "${key}"${at} is not one of ${Object.keys(LUMA).join(' / ')}`];
+  if (key === 'natural') {
+    if (l.dark > bar.maxDark) {
+      return [`key "natural"${at} but ${(l.dark * 100).toFixed(0)}% of the frame is below 5% `
+        + `luminance (max ${bar.maxDark * 100}%) — raise the fill, cut the fog, or declare "low"`];
+    }
+    if (l.median < bar.minMedian) {
+      return [`key "natural"${at} but the median pixel is ${l.median.toFixed(3)} `
+        + `(min ${bar.minMedian}) — the whole range has collapsed into the bottom`];
+    }
+  } else if (key === 'low' && l.bright < bar.minBright) {
+    return [`key "low"${at} but nothing in the frame is bright (${(l.bright * 100).toFixed(1)}% `
+      + `above 55% luminance, min ${bar.minBright * 100}%) — a dark world still needs a lit focal `
+      + 'subject, or it is mud rather than mood'];
+  } else if (key === 'high' && l.median < bar.minMedian) {
+    return [`key "high"${at} but the median pixel is ${l.median.toFixed(3)} (min ${bar.minMedian})`];
+  }
+  return [];
+}
+for (const m of moments) {
+  m.key = m.key || info.key;
+  m.problems = keyProblems(m.key, m.luma, MOMENTS.length ? m.name : null);
+  problems.push(...m.problems);
 }
 
 // A world that passes gets its single-file bundle refreshed, right here. Exporting used to be a
@@ -263,7 +309,7 @@ if (problems.length === 0 && !process.argv.includes('--no-export')) {
 }
 
 if (drive?.error) problems.push(`pilot.js threw: ${drive.error}`);
-else if (drive && drive.acted > 0 && !drive.moved)
+else if (drive && drive.acted > 0 && !drive.moved && !drive.terminal)
   problems.push('act() was called and getState() never changed — the playable contract is inert');
 
 const { audit, ...facts } = info;
@@ -276,6 +322,7 @@ console.log(JSON.stringify({
   frameMs,
   luma,
   chroma,
+  ...(MOMENTS.length ? { moments: moments.map(({ s, name, key, luma, chroma }) => ({ s, name, key, luma, chroma })) } : {}),
   ...facts,
   pass: problems.length === 0,
   problems,

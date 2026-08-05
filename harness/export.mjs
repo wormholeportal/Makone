@@ -3,6 +3,8 @@
 //   node harness/export.mjs <world>               # -> worlds/<world>/<world>.html
 //   node harness/export.mjs --all                 # every module world
 //   node harness/export.mjs <world> --out ~/Desktop
+//   node harness/export.mjs --check              # gate: every module world has a bundle, and
+//                                                #   every bundle matches the source beside it
 //
 // Everything is inlined: three, the runtime, the world's own modules, world.json, and —
 // when the world uses CSG — manifold.wasm as base64. `file://` forbids fetch, so anything
@@ -12,10 +14,16 @@
 // This is a share/archive artifact, not the dev loop: development stays zero-build
 // (serve.mjs + import map). esbuild is a devDependency and never touches runtime/.
 import { promises as fs } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// Hoisted above the `await cli()` below, which would otherwise hit them in the TDZ.
+const SKIP_DIRS = new Set(['shots', 'refs', 'node_modules']);
+const SKIP_FILES = new Set(['pilot.js']);
+const STAMP = /<!-- makone:src ([0-9a-f]+) -->/;
 
 // Run as a script, or imported for its exportWorld(). verify.mjs imports it, so the CLI must not
 // fire on import — hence the main-module guard instead of top-level statements.
@@ -36,17 +44,33 @@ async function cli() {
   // repo can open. It exists because ten of them were built, reviewed and committed without one,
   // and nothing said a word (the workflow already told me to export — nothing enforced it).
   if (args.includes('--check')) {
+    // "Has a bundle" was only half the gate. A bundle is built from source and then the source
+    // keeps moving: edit main.js, skip verify, commit, and the .html beside it silently becomes
+    // a picture of an older world. Every bundle now carries a hash of the sources it was built
+    // from, so the gate can tell the difference between absent and stale.
     const missing = [];
+    const stale = [];
+    const unstamped = [];
     for (const w of modules) {
-      const file = path.join(ROOT, 'worlds', w.path, `${w.path}.html`);
-      if (!(await fs.stat(file).catch(() => null))) missing.push(w.path);
+      const dir = path.join(ROOT, 'worlds', w.path);
+      const file = path.join(dir, `${w.path}.html`);
+      if (!(await fs.stat(file).catch(() => null))) { missing.push(w.path); continue; }
+      const stamped = await readStamp(file);
+      if (!stamped) unstamped.push(w.path);
+      else if (stamped !== await sourceHash(dir)) stale.push(w.path);
     }
-    if (missing.length) {
-      console.error(`no exported bundle for: ${missing.join(', ')}\n`
-        + `run: node harness/export.mjs --all`);
+    const bad = [];
+    if (missing.length) bad.push(`no exported bundle for: ${missing.join(', ')}`);
+    if (stale.length) bad.push(`bundle is older than its source for: ${stale.join(', ')}`);
+    if (bad.length) {
+      console.error(`${bad.join('\n')}\nrun: node harness/export.mjs --all`);
       process.exit(1);
     }
-    console.log(`all ${modules.length} module worlds have a bundle`);
+    console.log(`all ${modules.length} module worlds have a bundle`
+      + (unstamped.length
+        ? `\n${unstamped.length} built before this check existed and carry no source stamp `
+          + `(${unstamped.join(', ')}) — one \`node harness/export.mjs --all\` arms them`
+        : ', and every one matches its source'));
     return;
   }
 
@@ -73,7 +97,8 @@ async function cli() {
 /** Bundle one world into a single HTML file. Returns the one-line report.
  *  @param {{path: string}} w  a row from worlds/index.json (only `.path` is read) */
 export async function exportWorld(w, outFlag = null) {
-  const meta = JSON.parse(await fs.readFile(path.join(ROOT, 'worlds', w.path, 'world.json'), 'utf8'));
+  const srcDir = path.join(ROOT, 'worlds', w.path);
+  const meta = JSON.parse(await fs.readFile(path.join(srcDir, 'world.json'), 'utf8'));
   const entry = `/worlds/${w.path}/${meta.entry || 'main.js'}`;
 
   const esbuild = await import('esbuild');
@@ -108,7 +133,7 @@ export async function exportWorld(w, outFlag = null) {
       + `c=>c.charCodeAt(0)).buffer;</script>\n`;
   }
 
-  const html = shell({ meta, bundle, wasmPrelude });
+  const html = shell({ meta, bundle, wasmPrelude, stamp: await sourceHash(srcDir) });
   const dir = outFlag ? path.resolve(ROOT, outFlag) : path.join(ROOT, 'worlds', w.path);
   await fs.mkdir(dir, { recursive: true });
   const file = path.join(dir, `${w.path}.html`);
@@ -119,9 +144,45 @@ export async function exportWorld(w, outFlag = null) {
 
 function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
 
-function shell({ meta, bundle, wasmPrelude }) {
+/** A fingerprint of everything the bundler could have read out of the world's directory.
+ *
+ *  `pilot.js` is deliberately excluded: nothing imports it (it may not import the world — see
+ *  docs/principles.md E11), so editing it cannot make the bundle wrong, and counting it would
+ *  mark every bundle stale every time somebody tuned a bot. `shots/` and `refs/` are review
+ *  artifacts. What is NOT covered is `runtime/` — a runtime change ages all 59 bundles at once,
+ *  which is true but too noisy to be an actionable gate. */
+async function sourceHash(dir) {
+  const h = createHash('sha1');
+  const walk = async (d, rel = '') => {
+    const entries = (await fs.readdir(d, { withFileTypes: true }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    for (const e of entries) {
+      if (e.isDirectory()) {
+        if (!SKIP_DIRS.has(e.name)) await walk(path.join(d, e.name), `${rel}${e.name}/`);
+        continue;
+      }
+      if (SKIP_FILES.has(e.name)) continue;
+      if (!e.name.endsWith('.js') && e.name !== 'world.json') continue;
+      h.update(rel + e.name);
+      h.update(await fs.readFile(path.join(d, e.name)));
+    }
+  };
+  await walk(dir);
+  return h.digest('hex').slice(0, 12);
+}
+
+async function readStamp(file) {
+  const fh = await fs.open(file, 'r');
+  const buf = Buffer.alloc(256);
+  await fh.read(buf, 0, 256, 0);
+  await fh.close();
+  return buf.toString('utf8').match(STAMP)?.[1] || null;
+}
+
+function shell({ meta, bundle, wasmPrelude, stamp }) {
   const title = `${meta.title || meta.name} — Makone`;
   return `<!doctype html>
+<!-- makone:src ${stamp} -->
 <html lang="en">
 <head>
 <meta charset="utf-8" />

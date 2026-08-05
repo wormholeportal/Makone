@@ -68,6 +68,22 @@ subject needs it or whether you are hiding.
 picture contradicts the key you declared — a `natural` world that is 60% black, or a `low` world
 with no highlight anywhere. Declared intent, measured result, same contract as `budget`.
 
+**If the world has a long cycle, one key cannot be honest about it.** A day/night game really is
+`natural` at noon and `low` at midnight, and only the first six seconds were ever measured — so the
+half most likely to be mud never reached the gate. Name the moments instead, each with its own key,
+in `world.json`; a playable world is driven there through its `pilot.js`, because a game left
+standing still until midnight is measuring its own death screen:
+
+```json
+"verify": { "at": [ { "s": 2,  "key": "natural", "name": "first light" },
+                    { "s": 64, "key": "low",     "name": "night at the fire" } ] }
+```
+
+Declared moments REPLACE the default one — list the opening explicitly if you still want it. This is
+not bookkeeping: it is the check that told `dontstarve2` its night had no highlight anywhere in it
+(0.2% of the frame above 55% luminance, against a bar of 0.8%), which was true, and which nobody had
+noticed through six review rounds of looking at that exact frame and liking it.
+
 **Then read `chroma`, because value is only half the frame and it was the half with a number on
 it.** `sat` is median saturation; `spread` is the share of the frame's colour that is *not* in its
 busiest 30° hue sector. A canyon once measured `median 0.67`, zero crushed pixels and a clean
@@ -104,6 +120,8 @@ node harness/capture.mjs <name> --shots 4
 node harness/capture.mjs <name> --shots 4 --ref refs/x.jpg       # vs the real thing (step 1)
 node harness/capture.mjs <name> --shots 4 --ref <last-run>.png   # vs your own last frame: regression
 node harness/capture.mjs <name> --hero     # NOT optional — one frame at 1920×1080, and look at it
+node harness/capture.mjs <name> --play 64 --hero   # a GAME: the hero frame of a game standing still on
+                                          #   frame zero is a photograph of its menu. Drive it.
 node harness/verify.mjs <name>
 node harness/catalog.mjs                  # only if world.json changed
 node harness/export.mjs <name>            # worlds/<name>/<name>.html — one file, opens by double-click

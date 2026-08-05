@@ -249,6 +249,29 @@ Corollary for any world where both a bot and a human write one input struct:
 decide which wins, in code, on purpose (`gorge` gates the keyboard read behind a
 `botUntil` timestamp).
 
+**And the blind spot in all of the above: an outside pilot cannot see a mirror.**
+If `observe()` and `act()` share the same sign error, the pilot reads "the gate
+is to your right", commands "turn right", both are wrong in the same direction,
+and it flies a perfect line. `gorge` finished 27/27 with zero contacts while `D`
+turned the aircraft **left**, and the run was used as evidence that the controls
+were fixed. They were not: the fix had been applied to the wrong half.
+
+A pilot closes the loop between `observe` and `act`, so it can only ever prove
+the two **agree**. Proving they are *right* needs a third reference that neither
+of them defines — and the only one that exists is the screen, because left and
+right are facts about what the player sees:
+
+```js
+const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+const a = new THREE.Vector3(); camera.getWorldDirection(a);
+for (let i = 0; i < 18; i++) { world.act({ turn: +1 }); world.renderFrame(1 / 30); }
+const b = new THREE.Vector3(); camera.getWorldDirection(b);
+console.log(b.sub(a).dot(camRight));      // "turn right" MUST be > 0
+```
+
+Run that once per playable world, by hand, and read the sign. It is four lines
+and it is the only check in this repo that a self-consistent world cannot fool.
+
 ### E12. A form authored below the mesh's sampling rate does not exist
 
 If a feature is not at least ~3 samples across, it is not in the picture no
@@ -264,6 +287,50 @@ The same arithmetic applies to textures (a 4-pixel feature in a 256² map is
 noise, not detail) and to the reverse case: `gorge`'s first rock map put its
 top octave on a 4-texel span and the whole canyon shimmered like television
 static from 400 m away.
+
+**And it applies again on the way out, against the SCREEN.** A texture is
+authored at some resolution and then magnified by however much of the world it
+has to cover: `dontstarve2` painted its island onto a 2048² map spanning 190 m,
+which is 11 texels per metre — and the camera sits close enough that one metre
+is ~87 screen pixels, so every painted mark was blown up eight times into soup.
+The maths of the marks was fine; they were authored for a magnification that
+never happened. Divide again before you author: **texels per metre ÷ pixels per
+metre**. Under 1 and the detail cannot survive the trip, however good it is.
+The fix is not a bigger map (a 16k map for one island is absurd) — it is a
+second texture tiled in *world* space, whose density does not depend on how
+much ground the first one had to cover.
+
+### E13. Anything that expires must expire on `dt`, not on the wall clock
+
+`setTimeout` does not exist for a world that is being stepped by hand, and every
+review tool in this repo steps worlds by hand: `capture` simulates N seconds
+inside one synchronous burst, `verify` samples, `botplay` runs a whole course in
+a fraction of the time it depicts. A HUD fade, a toast, a title card, a hit
+flash, a cooldown pip — anything whose lifetime is measured in `setTimeout`
+milliseconds — never fires there.
+
+`dontstarve2`'s opening caption was written with a 4-second `setTimeout`. It sat
+over **every** review frame, every contact sheet and the gallery cover, and it
+read as an art problem ("why is there text on my hero shot") rather than as a
+timing one. It survived four rounds.
+
+```js
+// ❌ never fires under capture/verify/botplay
+setTimeout(() => banner.style.opacity = '0', 4000)
+
+// ✅ the world's own clock is the only clock
+tick(dt) { if (this.t > 0 && (this.t -= dt) <= 0) this.hide() }
+```
+
+**CSS transitions are wall-clock too**, and that is the second half of the trap:
+after the fix above, `transition: opacity .6s` still left the caption half-faded
+in the screenshot, because the harness burns eight simulated seconds in ~200 ms
+of real time and shoots immediately after. A fade needs a partner that is not
+animated — set `visibility: hidden` as well as `opacity: 0` — or the element
+will be caught mid-transition forever.
+
+Same family, same fix: `performance.now()` / `Date.now()` deltas anywhere in a
+world are a bug. `renderFrame(dt)` is the only time that exists.
 
 ---
 
@@ -367,4 +434,6 @@ patterns**, distilled from real mistakes.
 | World looks "empty / hazy", raycasts hit nothing, every gate green | E10 → index winding |
 | Controls feel wrong, or `act()` seems to do nothing | E11 → drive it from outside, `botplay` |
 | A form is mathematically there and invisible in the render | E12 → feature size ÷ quad size |
+| A painted texture turns to soup when the camera gets close | E12 → texels per metre ÷ pixels per metre |
+| A caption / toast / flash sits over every capture and the cover | E13 → expire on `dt`, and pair the fade with `visibility` |
 | New game feels like a "tech demo" not a game | Game design Step 0 fail — re-read fantasy-test.md |

@@ -58,16 +58,28 @@ node harness/serve.mjs                      # local static server (open http://l
 node harness/create.mjs <name> --type scene --brief "..."
 node harness/capture.mjs <name> --shots 4   # orbit shots; --arc a0,a1 for walled scenes; --at 0,0.5,0.9 for timelines; --after s to simulate first
 node harness/capture.mjs <name> --hero      # ONE frame at 1920×1080 — the look-before-you-call-it-done shot
+node harness/capture.mjs <name> --play 62,250  # PLAYABLE worlds: drive it through pilot.js and shoot at those
+                                            #   simulated seconds. Without it a game is only ever photographed
+                                            #   standing still on its first frame — two of the games in here have
+                                            #   a complete visual record of four shots of their own title card.
+                                            #   Combines with --hero: `--play 64 --hero` is the money shot.
 node harness/verify.mjs <name>              # console errors / contract / budget / frameMs, JSON output (module format only)
                                             #   a PASS also refreshes worlds/<name>/<name>.html (--no-export to skip)
                                             #   read `warnings`: material traps that render as "too dark" and
                                             #   look like lighting bugs (skills/three/instancing-traps.md)
                                             #   read `chroma`: sat + hue spread. spread < 0.15 is a monochrome —
                                             #   `luma` cannot see that, and it passes every key (skills/world step 3)
+                                            #   a world with a long cycle names the moments that must be judged,
+                                            #   each with its own key — otherwise only its first six seconds are
+                                            #   ever measured and the night never reaches the gate:
+                                            #     "verify": { "at": [ { "s": 2,  "key": "natural", "name": "day" },
+                                            #                         { "s": 64, "key": "low", "name": "night" } ] }
 node harness/botplay.mjs <name>             # playable worlds only: fly the whole thing through worlds/<name>/pilot.js
                                             #   the pilot lives OUTSIDE the world and uses only observe/getState/act.
                                             #   An autopilot inside main.js proves nothing (docs/principles.md E11)
-node harness/export.mjs --check             # gate: every module world has a single-file bundle
+node harness/export.mjs --check             # gate: every module world has a single-file bundle, and every
+                                            #   bundle still matches the source beside it (each one carries
+                                            #   a hash of the sources it was built from)
 node harness/catalog.mjs                    # regenerate index.json after editing world.json (--check for a gate)
 ```
 
