@@ -144,6 +144,17 @@ export async function exportWorld(w, outFlag = null) {
 
 function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
 
+/** Is the bundle beside this world still the one its source would build?
+ *  'missing' | 'unstamped' (built before stamps existed) | 'stale' | 'current' */
+export async function bundleStatus(name) {
+  const dir = path.join(ROOT, 'worlds', name);
+  const file = path.join(dir, `${name}.html`);
+  if (!(await fs.stat(file).catch(() => null))) return 'missing';
+  const stamped = await readStamp(file);
+  if (!stamped) return 'unstamped';
+  return stamped === await sourceHash(dir) ? 'current' : 'stale';
+}
+
 /** A fingerprint of everything the bundler could have read out of the world's directory.
  *
  *  `pilot.js` is deliberately excluded: nothing imports it (it may not import the world — see

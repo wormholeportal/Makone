@@ -122,7 +122,7 @@ if (hero) {
   // is the shot the author framed, rendered big enough to be judged. An --arc or --at is a
   // different question and gets a different run.
   if (playing) await drive(page, name, playAt[0]);
-  else if (after > 0) await step(page, after);
+  else if (after > 0) await step(page, after, { shrink: true });
   const az = opt('--arc', null)?.split(',').map(Number)?.[0];
   if (az !== undefined) await page.evaluate((a) => window.__orbit(a), az);
   await shoot('hero');
@@ -138,7 +138,7 @@ if (hero) {
     await shoot(`t${t}`);
   }
 } else {
-  if (after > 0) await step(page, after);
+  if (after > 0) await step(page, after, { shrink: true });
   if (shots <= 1) {
     await shoot('shot-0');
   } else {

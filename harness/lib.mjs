@@ -26,13 +26,41 @@ export async function openWorld(worldName, { width = 1280, height = 720, part = 
   return { page, errors, close };
 }
 
+/** Shrink the viewport for a stretch of work nobody is going to look at, and put it
+ *  back before anybody does. Headless GL is fill-rate bound, so simulated time costs
+ *  real time in proportion to the pixels; 320 px wide is ~16x fewer of them and the
+ *  simulation is identical. Returns a restore function.
+ *
+ *  Never wrap anything that MEASURES pixels in this — verify's luma samples read the
+ *  framebuffer, so they run at the size the world was opened at. */
+async function shrunk(page, on) {
+  const vp = on ? page.viewportSize() : null;
+  if (!vp) return async () => {};
+  await page.setViewportSize({ width: 320, height: Math.max(2, Math.round(320 * vp.height / vp.width)) });
+  await page.evaluate(() => window.__world.resize());
+  return async () => {
+    await page.setViewportSize(vp);
+    await page.evaluate(() => { window.__world.resize(); window.__world.renderFrame(0); });
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+  };
+}
+
 /** Advance the world by `seconds` of simulated time (fixed 30 fps steps).
  *  The trailing rAF yield is load-bearing: a long synchronous `__step` leaves the page
  *  busy enough that Playwright's next locator query can time out waiting for the canvas
- *  (`--after N` with a single shot failed 100% of the time without it). */
-export async function step(page, seconds) {
-  await page.evaluate((s) => window.__step(1 / 30, Math.round(s * 30)), seconds);
-  await page.evaluate(() => new Promise(requestAnimationFrame));
+ *  (`--after N` with a single shot failed 100% of the time without it).
+ *
+ *  `{ shrink: true }` renders the journey small — opt-in, and never used where the frames
+ *  themselves are the measurement. */
+export async function step(page, seconds, { shrink = false } = {}) {
+  const restore = await shrunk(page, shrink && seconds > 3);
+  const SLICE = 4;
+  for (let done = 0; done < seconds; done += SLICE) {
+    const chunk = Math.min(SLICE, seconds - done);
+    await page.evaluate((s) => window.__step(1 / 30, Math.round(s * 30)), chunk);
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+  }
+  await restore();
 }
 
 /** Advance the world to `toSeconds` of simulated time — PLAYING it if it can be played.
@@ -62,17 +90,10 @@ export async function drive(page, name, toSeconds, { hz = 30, quiet = false, shr
   const SLICE = 2;
   let at = await page.evaluate(() => window.__driveT || 0);
 
-  // Travelling costs one rendered frame per simulated frame, and headless GL is fill-rate
-  // bound, so getting to minute two of a world at 1280x720 takes minutes of wall clock.
-  // Nobody looks at the frames on the way, so shrink for the journey and restore before
-  // anyone does — 16x fewer pixels, identical simulation. (botplay already runs its whole
-  // course at 256x144 for the same reason.)
-  const vp = page.viewportSize();
-  const travelling = shrink && vp && toSeconds - at > 8;
-  if (travelling) {
-    await page.setViewportSize({ width: 320, height: Math.max(2, Math.round(320 * vp.height / vp.width)) });
-    await page.evaluate(() => window.__world.resize());
-  }
+  // Travelling costs one rendered frame per simulated frame, so getting to minute two of
+  // a world at 1280x720 takes minutes of wall clock. Nobody looks at the frames on the
+  // way. (botplay already runs its whole course at 256x144 for the same reason.)
+  const restore = await shrunk(page, shrink && toSeconds - at > 8);
   while (at < toSeconds - 1e-6) {
     const until = Math.min(toSeconds, at + SLICE);
     await page.evaluate(async ({ n, target, rate, pilot }) => {
@@ -93,11 +114,7 @@ export async function drive(page, name, toSeconds, { hz = 30, quiet = false, shr
     await page.evaluate(() => new Promise(requestAnimationFrame));
     at = until;
   }
-  if (travelling) {
-    await page.setViewportSize(vp);
-    await page.evaluate(() => { window.__world.resize(); window.__world.renderFrame(0); });
-    await page.evaluate(() => new Promise(requestAnimationFrame));
-  }
+  await restore();
   return { played: usePilot, at };
 }
 

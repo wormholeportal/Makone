@@ -63,10 +63,21 @@ node harness/capture.mjs <name> --play 62,250  # PLAYABLE worlds: drive it throu
                                             #   standing still on its first frame — two of the games in here have
                                             #   a complete visual record of four shots of their own title card.
                                             #   Combines with --hero: `--play 64 --hero` is the money shot.
+node harness/verify.mjs <name> --quick      # ~15s: does it still LOAD, is the console clean, is the
+                                            #   exported bundle still current. Nothing else. Run it after
+                                            #   any edit you were about to call done without looking —
+                                            #   a world sat broken for a whole round because a string
+                                            #   replace missed and nothing had loaded it since
 node harness/verify.mjs <name>              # console errors / contract / budget / frameMs, JSON output (module format only)
                                             #   a PASS also refreshes worlds/<name>/<name>.html (--no-export to skip)
                                             #   read `warnings`: material traps that render as "too dark" and
                                             #   look like lighting bugs (skills/three/instancing-traps.md)
+                                            #   read `hands`: real pointer + key input is driven at the world
+                                            #     and every control it drew is pressed while the world ticks.
+                                            #     A control that is REBUILT while the button is held can never
+                                            #     be clicked (a browser only fires click when down and up land
+                                            #     on the same node) — that is a hard failure, and it is how a
+                                            #     crafting panel became unusable with every other gate green
                                             #   read `chroma`: sat + hue spread. spread < 0.15 is a monochrome —
                                             #   `luma` cannot see that, and it passes every key (skills/world step 3)
                                             #   a world with a long cycle names the moments that must be judged,

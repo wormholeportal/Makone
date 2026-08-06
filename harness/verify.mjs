@@ -1,11 +1,21 @@
 // verify.mjs — contract + health check for a world. Exit 0 = pass.
 //
 //   node harness/verify.mjs worlds/<name>
+//   node harness/verify.mjs <name> --quick     # ~10s: does it still LOAD, does the console
+//                                              #   stay clean, is the exported bundle current.
+//                                              #   No luma, no budget, no pilot, no export.
 //
 // Checks (pass/fail): loads cleanly, WorldModule contract complete (assertContract runs
 // inside loadWorld — base methods plus whole-or-nothing method families), 6 simulated
 // seconds without console errors, triangle/draw-call budget, and — for a world that
 // implements a timeline — that seekTo actually changes the frame.
+//
+// `--quick` exists because the full run costs a minute (more if the world declares late
+// moments), which is a perfectly rational thing to skip during a tight edit loop — and
+// skipping it is how a world sat BROKEN for a whole round of "fixed it": a string replace
+// whose anchor had drifted left a reference undefined, the world threw on construction, and
+// nothing said a word because nothing had loaded it. The cheap tier is the fix: it answers
+// only "does it still come up, and is the file a human would open still the current one".
 //
 // Reports (facts, not gates): the probed capabilities and `animated`. Nothing is declared
 // in world.json any more (D6), so nothing here can contradict a declaration; these are
@@ -53,8 +63,43 @@ const LUMA = {
 };
 
 const name = worldNameFromArg(process.argv[2]);
+const quick = process.argv.includes('--quick');
 const record = JSON.parse(await fs.readFile(path.join(ROOT, 'worlds', name, 'world.json'), 'utf8'));
-const { page, errors, close } = await openWorld(name);
+const { bundleStatus } = await import('./export.mjs');
+// The cheap tier's whole job is "does it still come up", so a world that does NOT come up
+// has to be an answer in the same shape as every other answer, not a stack trace.
+let opened;
+try {
+  opened = await openWorld(name);
+} catch (err) {
+  if (!quick) throw err;
+  console.log(JSON.stringify({
+    world: name, quick: true, pass: false,
+    problems: [`world failed to load: ${String(err.message || err).split('\n').join(' · ')}`],
+  }, null, 2));
+  process.exit(1);
+}
+const { page, errors, close } = opened;
+
+if (quick) {
+  await step(page, 0.5);
+  const caps0 = await page.evaluate(() => ({
+    timeline: typeof window.__world.seekTo === 'function',
+    interactive: typeof window.__world.act === 'function',
+  }));
+  await close();
+  const bundle = await bundleStatus(name);
+  const problems0 = errors.map((e) => `console: ${e}`);
+  if (bundle === 'stale') {
+    problems0.push('the exported bundle is older than its source — worlds/'
+      + `${name}/${name}.html is not what this code builds. Run: node harness/export.mjs ${name}`);
+  }
+  console.log(JSON.stringify({
+    world: name, quick: true, ...caps0, bundle,
+    pass: problems0.length === 0, problems: problems0,
+  }, null, 2));
+  process.exit(problems0.length ? 1 : 0);
+}
 
 const caps = await page.evaluate(() => ({
   timeline: typeof window.__world.seekTo === 'function',
@@ -156,6 +201,84 @@ if (caps.interactive) {
       return { acted, moved, terminal: !!(st.terminal ?? st.dead ?? st.won) };
     }, name).catch((err) => ({ error: String(err) }));
   }
+}
+
+// ── hands ────────────────────────────────────────────────────────────────────
+// `act()` is one of a world's two interfaces, and the harness only ever drove that one.
+// Three bugs shipped through the other seam in a single build of `dontstarve2`, each
+// invisible to `botplay` because the pilot calls `act({interact})` and never presses
+// anything: a click that walked to the target and then stood there forever, a crafting
+// panel that rebuilt itself ten times a second so no `click` event could ever fire, and
+// a handler that read `e.buttons` — which synthetic events do not set.
+//
+// A generic checker cannot know what a click SHOULD do. It can check two things that are
+// wrong in every world:
+//
+//   1. Real input must not throw. Playwright's mouse and keyboard generate the same events
+//      a person's do, including the ones an author never dispatches by hand.
+//   2. **A control must survive being pressed.** A browser only fires `click` when down and
+//      up land on the same node, so any element that rebuilds itself while the button is
+//      held is a button that cannot be pressed. This is checked while the world is TICKING,
+//      because that is when a HUD redraws — a test that holds the button with the world
+//      paused passes against the broken build, which is exactly what my first attempt did.
+const HOLD = 4;                     // frames the world advances while the button is down
+const hands = { pressed: 0, swallowed: [], errorsBefore: errors.length };
+{
+  const box = await page.locator('canvas').first().boundingBox();
+  if (box) {
+    const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.evaluate((n) => window.__step(1 / 30, n), HOLD);
+    await page.mouse.move(cx + 40, cy + 24);
+    await page.mouse.up();
+    await page.keyboard.press('Space');
+    await page.keyboard.press('KeyW');
+    await page.evaluate(() => window.__step(1 / 30, 6));
+  }
+
+  // Every control the world put on screen, pressed the way a person presses one.
+  //
+  // Scanned one at a time, immediately before each press, and that ordering is the
+  // whole check. Scanning them all up front does not work in either direction: an
+  // earlier press can dismiss a later control (a title card's Begin button takes its
+  // own panel with it — that is the control WORKING), and a panel that rebuilds itself
+  // has already replaced the rest of the list before the first press lands, so the
+  // evidence is gone by the time you look. Freshly scanned, still there when the button
+  // goes down: if it is gone when the button comes up, it was replaced, and no click
+  // event can ever have fired on it.
+  const tally = {};
+  for (let n = 0; n < 12; n++) {
+    const c = await page.evaluate((mark) => {
+      // the WORLD's controls, not the player page's chrome: everything a world
+      // draws lives inside the container it was handed
+      const root = document.getElementById('stage') || document.body;
+      for (const el of root.querySelectorAll('*')) {
+        if (el.tagName === 'CANVAS' || el.dataset.dsProbe) continue;
+        const st = getComputedStyle(el);
+        if (st.pointerEvents !== 'auto' || st.display === 'none' || st.visibility === 'hidden') continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8 || r.width > 900 || r.height > 700) continue;
+        if (r.x < 0 || r.y < 0) continue;
+        el.dataset.dsProbe = mark;
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2,
+          tag: (el.className || el.tagName).toString().split(' ')[0] };
+      }
+      return null;
+    }, `p${n}`);
+    if (!c) break;
+    tally[c.tag] = (tally[c.tag] || 0) + 1;
+    if (tally[c.tag] > 3) continue;                    // three of a kind is enough
+    await page.mouse.move(c.x, c.y);
+    await page.mouse.down();
+    await page.evaluate((f) => window.__step(1 / 30, f), HOLD);
+    const alive = await page.evaluate((id) => !!document.querySelector(`[data-ds-probe="${id}"]`), `p${n}`);
+    await page.mouse.up();
+    hands.pressed++;
+    if (!alive) hands.swallowed.push(c.tag);
+  }
+  hands.errors = errors.length - hands.errorsBefore;
+  delete hands.errorsBefore;
 }
 
 // Budget is measured by WALKING THE SCENE, not by reading `renderer.info`.
@@ -308,6 +431,11 @@ if (problems.length === 0 && !process.argv.includes('--no-export')) {
   bundle = (await exportWorld({ path: name })).trim();
 }
 
+if (hands.swallowed.length) {
+  problems.push(`a control is rebuilt while the pointer is held, so it can never be clicked: `
+    + `${[...new Set(hands.swallowed)].join(', ')} — a browser only fires click when mousedown `
+    + 'and mouseup land on the same node. Rebuild the DOM only when its shape changes.');
+}
 if (drive?.error) problems.push(`pilot.js threw: ${drive.error}`);
 else if (drive && drive.acted > 0 && !drive.moved && !drive.terminal)
   problems.push('act() was called and getState() never changed — the playable contract is inert');
@@ -319,6 +447,7 @@ console.log(JSON.stringify({
   animated: motion > MOTION,
   ...(caps.interactive ? { piloted: !!drive } : {}),
   motion: Number(motion.toFixed(4)),
+  hands,
   frameMs,
   luma,
   chroma,

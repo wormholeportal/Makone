@@ -300,6 +300,27 @@ The fix is not a bigger map (a 16k map for one island is absurd) — it is a
 second texture tiled in *world* space, whose density does not depend on how
 much ground the first one had to cover.
 
+### E12b. An image is only good for the place it was composed for
+
+The divisions above are about resolution. This one is about **composition**, and
+it survives any amount of resolution.
+
+`dontstarve2` hung its inventory icons off the character's wrist to show a held
+tool. Every one of them read as a spoon. The icons were fine — they are composed
+to be unmistakable at 40 px in a square slot, which means centred, square-ish,
+foreshortened, the whole object crammed into a box. A tool in a hand needs the
+exact opposite: a long handle, the working end at the far end, and a grip a
+third of the way up, because that is what the arm is holding it by. Nothing
+about pixels was wrong. The *framing* was authored for a different question.
+
+The same trap, in other shapes: a texture authored as a flat swatch used as a
+skybox, a portrait cropped for a card reused as a banner, an emoji picked to
+label a tab standing in for a drawn icon next to drawn icons.
+
+**If a drawing has to appear in two places, draw it twice.** It is cheaper than
+it sounds — the second version is usually simpler than the first, because it
+only has to answer one question.
+
 ### E13. Anything that expires must expire on `dt`, not on the wall clock
 
 `setTimeout` does not exist for a world that is being stepped by hand, and every
@@ -435,5 +456,6 @@ patterns**, distilled from real mistakes.
 | Controls feel wrong, or `act()` seems to do nothing | E11 → drive it from outside, `botplay` |
 | A form is mathematically there and invisible in the render | E12 → feature size ÷ quad size |
 | A painted texture turns to soup when the camera gets close | E12 → texels per metre ÷ pixels per metre |
+| An image is technically fine and reads as the wrong object | E12b → it was composed for another place; draw it twice |
 | A caption / toast / flash sits over every capture and the cover | E13 → expire on `dt`, and pair the fade with `visibility` |
 | New game feels like a "tech demo" not a game | Game design Step 0 fail — re-read fantasy-test.md |
